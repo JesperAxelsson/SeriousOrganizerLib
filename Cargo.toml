@@ -4,3 +4,13 @@ version = "0.1.0"
 authors = ["Jesper Axelsson <jesperaxe@gmail.com>"]
 
 [dependencies]
+intmap = "0.4.0"
+scan_dir = "0.3.3"
+time = "0.1.39"
+regex = "0.2.10"
+
+# log = { version = "0.4.1", features = ["release_max_level_warn"] }
+
+[dependencies.rusqlite]
+version = "0.13.0"
+features = ["bundled"]
