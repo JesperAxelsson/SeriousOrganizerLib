@@ -1,0 +1,6 @@
+[package]
+name = "SeriousOrganizerLib"
+version = "0.1.0"
+authors = ["Jesper Axelsson <jesperaxe@gmail.com>"]
+
+[dependencies]
