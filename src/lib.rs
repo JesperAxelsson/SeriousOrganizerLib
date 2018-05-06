@@ -3,6 +3,8 @@ extern crate scan_dir;
 extern crate time;
 extern crate regex;
 extern crate rusqlite;
+extern crate serde;
+#[macro_use] extern crate serde_derive;
 
 pub mod dir_search;
 pub mod lens;

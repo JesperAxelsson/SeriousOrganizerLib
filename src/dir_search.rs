@@ -10,6 +10,7 @@ use time::PreciseTime;
 use scan_dir::ScanDir;
 
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DirEntry {
     pub name: String,
     pub path: String,
@@ -59,6 +60,7 @@ impl DirEntry {
 }
 
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct FileEntry {
     pub name: String,
     pub path: String,

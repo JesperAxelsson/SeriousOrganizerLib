@@ -8,6 +8,9 @@ scan_dir = "0.3.3"
 time = "0.1.39"
 regex = "0.2.10"
 
+serde = "1.0"
+serde_derive = "1.0"
+
 # log = { version = "0.4.1", features = ["release_max_level_warn"] }
 
 [dependencies.rusqlite]
