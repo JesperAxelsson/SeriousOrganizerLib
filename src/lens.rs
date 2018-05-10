@@ -8,7 +8,7 @@ use regex::{Regex, RegexBuilder, escape};
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use dir_search::DirEntry;
+use dir_search::{DirEntry, FileEntry};
 
 
 pub fn create_match_regex(needle: &str) -> Regex {
@@ -150,5 +150,14 @@ impl Lens {
         } else {
             None
         }
+    }
+
+    pub fn get_file_entry(&self, dir_ix: usize, file_ix: usize) -> Option<&FileEntry> {
+        if let Some(ref dir) = self.get_dir_entry(dir_ix) {
+            if dir.files.len() < file_ix {
+                return Some(&dir.files[file_ix]);
+            }
+        }
+        None
     }
 }
