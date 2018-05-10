@@ -125,9 +125,7 @@ impl Lens {
 
     pub fn get_dir_entry(&self, ix: usize) -> Option<&DirEntry> {
         if let Some(cix) = self.convert_ix(ix) {
-            if cix < self.source.len() {
-                return Some(&self.source[cix]);
-            }
+            return self.source.get(cix);
         }
         None
     }
@@ -154,9 +152,7 @@ impl Lens {
 
     pub fn get_file_entry(&self, dir_ix: usize, file_ix: usize) -> Option<&FileEntry> {
         if let Some(ref dir) = self.get_dir_entry(dir_ix) {
-            if dir.files.len() < file_ix {
-                return Some(&dir.files[file_ix]);
-            }
+            return dir.files.get(file_ix);
         }
         None
     }
