@@ -122,17 +122,31 @@ impl Lens {
         None
     }
 
+
     pub fn get_dir_entry(&self, ix: usize) -> Option<&DirEntry> {
-        if ix < self.source.len() {
-            Some(&self.source[ix])
+        if let Some(cix) = self.convert_ix(ix) {
+            if cix < self.source.len() {
+                return Some(&self.source[cix]);
+            }
+        }
+        None
+    }
+
+    fn convert_ix(&self, ix: usize) -> Option<usize> {
+        if ix < self.ix_list.len() {
+            Some(self.ix_list[ix])
         } else {
             None
         }
     }
 
-    pub fn convert_ix(&self, ix: usize) -> Option<usize> {
-        if ix < self.ix_list.len() {
-            Some(self.ix_list[ix])
+    pub fn get_dir_count(&self) -> usize {
+        self.ix_list.len()
+    }
+
+    pub fn get_file_count(&self, ix: usize) -> Option<usize> {
+        if let Some(ref dir) = self.get_dir_entry(ix) {
+            Some(dir.files.len())
         } else {
             None
         }
