@@ -6,17 +6,9 @@ use std::thread;
 
 use time::PreciseTime;
 
-
+use models::*;
 use scan_dir::ScanDir;
 
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct DirEntry {
-    pub name: String,
-    pub path: String,
-    pub files: Vec<FileEntry>,
-    pub size: u64,
-}
 
 
 impl Drop for DirEntry {
@@ -60,12 +52,29 @@ impl DirEntry {
 }
 
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct FileEntry {
-    pub name: String,
-    pub path: String,
-    pub size: u64,
-}
+//pub fn list_files_in_dir2(path: &str) -> Vec<DirEntry> {
+//    // println!("Starting glob: {:?}", path);
+//
+//    let mut vec: Vec<DirEntry> = Vec::new();
+//
+//    let path = PathBuf::from(path);
+//
+//    if !path.exists() {
+//        println!("Sorry path: {:?} does not exits", path);
+//        return vec;
+//    }
+//
+//    let sized = |files: &Vec<FileEntry>| {
+//        let mut size = 0;
+//        for f in files.iter() {
+//            size += f.size;
+//        }
+//        size
+//    };
+//
+//    vec
+//}
+
 
 
 pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {

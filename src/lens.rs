@@ -8,7 +8,7 @@ use regex::{Regex, RegexBuilder, escape};
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use dir_search::{DirEntry, FileEntry};
+use models::{DirEntry, FileEntry};
 
 
 pub fn create_match_regex(needle: &str) -> Regex {
