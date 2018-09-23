@@ -1,59 +1,114 @@
+#![allow(proc_macro_derive_resolution_fallback)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
-use diesel::prelude::*;
+
 use diesel;
+use diesel::prelude::*;
 //use diesel::sqlite::SqliteConnection;
 //
 use models::*;
+use schema::entries::dsl as e;
+use schema::files::dsl as f;
+use schema::labels::dsl as l;
+use std::collections::HashMap;
+
 //use schema::*;
 
 
 pub struct Store {
-
+    entriesCache: Vec<Entry>,
+    filesCache: Vec<File>,
+    labelsCache: Vec<Label>,
 }
-
 
 impl Store {
     pub fn init() -> Store {
-        Store {}
+        Store {
+            entriesCache: Vec::new(),
+            filesCache: Vec::new(),
+            labelsCache: Vec::new(),
+        }
     }
 
-    pub fn get_url(&self)  {
+    pub fn load_from_store(&mut self) {
+        let conn = self.establish_connection();
+//        conn.execute("DELETE FROM entries").unwrap();
+
+        self.entriesCache = e::entries.load(&conn).expect("Failed to load entries");
+        self.filesCache = f::files.load(&conn).expect("Failed to load files");
+        self.labelsCache = l::labels.load(&conn).expect("Failed to load labels");
+    }
+
+    pub fn update(&mut self, dir_entries: Vec<DirEntry>) {
+        use std::collections::HashMap;
+        use std::collections::HashSet;
+
+        let mut dir_hash = HashMap::with_capacity(dir_entries.len());
+        let mut file_hash = HashMap::with_capacity(dir_entries.len());
+        for dir in dir_entries.iter() {
+            for file in dir_entries.iter() {
+                file_hash.insert(&file.path, file);
+            }
+
+            dir_hash.insert(&dir.path, dir);
+        }
+
+        let mut store_hash = HashSet::with_capacity(self.entriesCache.len());
+        for dir in self.entriesCache.iter() {
+            store_hash.insert(&dir.path);
+        }
+
+        for entry in self.entriesCache.iter() {
+            if !dir_hash.contains_key(&entry.path) {
+                // Update
+
+                dir_hash.remove(&entry.path);
+            }
+        }
+
+        for (key, value) in dir_hash.iter() {
+            //
+            
+        }
+
+        println!("Found {:?} dirs, {:?} files and {:?} entries. Diff: {}", dir_hash.len(), file_hash.len(), store_hash.len(), 0);
+    }
+
+    pub fn get_url(&self) {
         let url = String::from("test.sqlite3");
 
         println!("Url: {:?}", url);
-//        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
-//        SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite")
+        //        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
+        //        SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite")
     }
 
     pub fn establish_connection(&self) -> SqliteConnection {
-//        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
+        //        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
         let url = String::from("test.sqlite3");
         SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite")
     }
 
     pub fn test_db(&mut self) {
-//        use schema::entries::dsl::*;
-        use schema::entries::dsl::*;
+        //        use schema::entries::dsl::*;
+
 
         println!("Get connection");
         let connection = self.establish_connection();
-//        pub name: String,
-//        pub path: String,
-//        pub size: u64,
-//        println!("Insert stuff");
-        diesel::insert_into(entries).values((name.eq("Phillies"), path.eq("D:\\temp"), size.eq(443))).execute(&connection);
+        //        pub name: String,
+        //        pub path: String,
+        //        pub size: u64,
+        //        println!("Insert stuff");
+        diesel::insert_into(e::entries)
+            .values((e::name.eq("Phillies"), e::path.eq("D:\\temp"), e::size.eq(443)))
+            .execute(&connection).expect("Failed to execute query");
 
-        let entries2: Vec<Entry> = entries.load(&connection).unwrap();
+        let entries2: Vec<Entry> = e::entries.load(&connection).unwrap();
         println!("Got entries: {}", entries2.len());
         for e in &entries2 {
             println!("{:?}", e);
         }
     }
-
 }
-
-
 
 ////use time;
 ////use time::Timespec;

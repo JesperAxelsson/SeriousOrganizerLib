@@ -1,15 +1,14 @@
 // mod filter;
 // extern crate intmap;
 
+use regex::{escape, Regex, RegexBuilder};
 use time::PreciseTime;
-use regex::{Regex, RegexBuilder, escape};
 
 //use std::mem;
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
 use models::{DirEntry, FileEntry};
-
 
 pub fn create_match_regex(needle: &str) -> Regex {
     let mut res: String = String::new();
@@ -20,9 +19,7 @@ pub fn create_match_regex(needle: &str) -> Regex {
     }
 
     let mut build = RegexBuilder::new(&res);
-    build.case_insensitive(true)
-        .unicode(true)
-        .build().unwrap()
+    build.case_insensitive(true).unicode(true).build().unwrap()
 }
 
 const KB: u64 = 1000;
@@ -38,25 +35,21 @@ pub fn pretty_size(size: u64) -> String {
     }
 }
 
-
 #[derive(Debug)]
 struct Search {
     string: String,
     regex: Regex,
 }
 
-
 // ************** Constant HWNDS **************
-
 
 pub struct Lens {
     pub source: Vec<DirEntry>,
     pub ix_list: Vec<usize>,
 
     search: Search,
-//    orderby_func: Option<Box<Fn(&DirEntry)->()>>,
+    //    orderby_func: Option<Box<Fn(&DirEntry)->()>>,
 }
-
 
 impl Lens {
     pub fn new() -> Self {
@@ -69,7 +62,7 @@ impl Lens {
             source: Vec::new(),
             ix_list: Vec::new(),
             search,
-//            orderby_func: None,
+            //            orderby_func: None,
         }
     }
 
@@ -101,10 +94,18 @@ impl Lens {
 
         let end = PreciseTime::now();
 
-        println!("ix_list update with {:?} entries took: {:?} ms", self.ix_list.len(), start.to(end).num_milliseconds());
+        println!(
+            "ix_list update with {:?} entries took: {:?} ms",
+            self.ix_list.len(),
+            start.to(end).num_milliseconds()
+        );
     }
 
-    pub fn order_by<F, T>(&mut self, compare: F) where F: FnMut(&DirEntry) -> T, T: Ord {
+    pub fn order_by<F, T>(&mut self, compare: F)
+    where
+        F: FnMut(&DirEntry) -> T,
+        T: Ord,
+    {
         self.source.sort_by_key(compare);
         self.update_ix_list();
     }
@@ -114,14 +115,12 @@ impl Lens {
             self.search.regex = create_match_regex(new_string);
             self.search.string = String::from(new_string);
 
-
             self.update_ix_list();
             return Some(self.ix_list.len());
         }
 
         None
     }
-
 
     pub fn get_dir_entry(&self, ix: usize) -> Option<&DirEntry> {
         if let Some(cix) = self.convert_ix(ix) {

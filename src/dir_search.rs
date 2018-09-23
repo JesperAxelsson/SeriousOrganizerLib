@@ -1,15 +1,13 @@
-use std::fs;
-use std::path::PathBuf;
-use std::mem;
 use std::cmp::Ordering;
+use std::fs;
+use std::mem;
+use std::path::PathBuf;
 use std::thread;
 
 use time::PreciseTime;
 
 use models::*;
 use scan_dir::ScanDir;
-
-
 
 impl Drop for DirEntry {
     fn drop(&mut self) {
@@ -24,20 +22,17 @@ impl Ord for DirEntry {
     }
 }
 
-
 impl PartialOrd for DirEntry {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.name.cmp(&other.name))
     }
 }
 
-
 impl PartialEq for DirEntry {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
-
 
 impl Eq for DirEntry {}
 
@@ -50,7 +45,6 @@ impl DirEntry {
         }
     }
 }
-
 
 //pub fn list_files_in_dir2(path: &str) -> Vec<DirEntry> {
 //    // println!("Starting glob: {:?}", path);
@@ -74,8 +68,6 @@ impl DirEntry {
 //
 //    vec
 //}
-
-
 
 pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
     // println!("Starting glob: {:?}", path);
@@ -106,12 +98,11 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
 
                 // *** Handle file ***
                 if meta.is_file() {
-                    let ff =
-                        vec![FileEntry {
-                            name: path.file_name().unwrap().to_str().unwrap().to_string(),
-                            path: path.to_str().unwrap().to_string(),
-                            size: meta.len(),
-                        }];
+                    let ff = vec![FileEntry {
+                        name: path.file_name().unwrap().to_str().unwrap().to_string(),
+                        path: path.to_str().unwrap().to_string(),
+                        size: meta.len(),
+                    }];
 
                     let e = DirEntry {
                         name: path.file_name().unwrap().to_str().unwrap().to_string(),
@@ -159,7 +150,6 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
                         })
                         .unwrap();
 
-
                     let size = sized(&files);
                     // files.shrink_to_fit();
 
@@ -169,7 +159,6 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
                     let path = path.to_str().unwrap().to_string();
 
                     // let name = shared_path(&path, len);
-
 
                     let e = DirEntry {
                         name: name,
@@ -187,7 +176,6 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
     vec
 }
 
-
 pub fn get_all_data(paths: Vec<String>) -> Vec<DirEntry> {
     let mut vec = Vec::new();
 
@@ -203,9 +191,11 @@ pub fn get_all_data(paths: Vec<String>) -> Vec<DirEntry> {
 
             let end = PreciseTime::now();
 
-            println!("Path {:?} entries took: {:?} ms",
-                     &p,
-                     start.to(end).num_milliseconds());
+            println!(
+                "Path {:?} entries took: {:?} ms",
+                &p,
+                start.to(end).num_milliseconds()
+            );
             vec1
         }))
     }
@@ -218,9 +208,11 @@ pub fn get_all_data(paths: Vec<String>) -> Vec<DirEntry> {
 
     let end = PreciseTime::now();
 
-    println!("Got {:?} entries took: {:?} ms",
-             vec.len(),
-             start.to(end).num_milliseconds());
+    println!(
+        "Got {:?} entries took: {:?} ms",
+        vec.len(),
+        start.to(end).num_milliseconds()
+    );
 
     vec
 }

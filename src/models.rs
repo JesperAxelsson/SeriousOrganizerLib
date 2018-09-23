@@ -1,3 +1,5 @@
+#![allow(proc_macro_derive_resolution_fallback)]
+
 use schema::*;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -8,14 +10,12 @@ pub struct DirEntry {
     pub size: u64,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FileEntry {
     pub name: String,
     pub path: String,
     pub size: u64,
 }
-
 
 #[derive(Identifiable, Queryable, Debug)]
 #[table_name = "entries"]
