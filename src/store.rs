@@ -12,6 +12,7 @@ use schema::files::dsl as f;
 use schema::labels::dsl as l;
 use std::collections::HashMap;
 
+use time::PreciseTime;
 //use schema::*;
 
 
@@ -43,6 +44,9 @@ impl Store {
         use std::collections::HashMap;
         use std::collections::HashSet;
 
+        println!("Starting update");
+        let start = PreciseTime::now();
+
         let mut dir_hash = HashMap::with_capacity(dir_entries.len());
         let mut file_hash = HashMap::with_capacity(dir_entries.len());
         for dir in dir_entries.iter() {
@@ -53,33 +57,51 @@ impl Store {
             dir_hash.insert(&dir.path, dir);
         }
 
-        let mut store_hash = HashSet::with_capacity(self.entriesCache.len());
-        for dir in self.entriesCache.iter() {
-            store_hash.insert(&dir.path);
-        }
+        let connection = self.establish_connection();
 
+        let mut collisions = HashSet::new();
         for entry in self.entriesCache.iter() {
-            if !dir_hash.contains_key(&entry.path) {
-                // Update
-
-                dir_hash.remove(&entry.path);
+            if let Some(dir_entry) = dir_hash.get(&entry.path) {
+                // Update existing entries
+                collisions.insert(entry.path.clone());
+                let new_size = dir_entry.size as i64;
+                if entry.size != new_size {
+                    println!("Update file: {} {}", entry.path, entry.name);
+                    diesel::update(entry).set(e::size.eq(new_size)).execute(&connection).expect("Failed to upadte <entry");
+                }
+            } else {
+                // Delete entries not in entries
+                println!("Delete file: {} {}", entry.path, entry.name);
+                diesel::delete(e::entries.filter(e::id.eq(entry.id))).execute(&connection).expect("Failed to delete entry");
             }
         }
 
+        // Insert new entries
+        let mut insert_query = Vec::with_capacity(dir_hash.len());
         for (key, value) in dir_hash.iter() {
-            //
-            
+            // Insert
+            if !collisions.contains(key.clone()) {
+                println!("Insert file: {}", key);
+                insert_query.push((e::name.eq(&value.name), e::path.eq(&value.path), e::size.eq(value.size as i64)));
+            }
         }
 
-        println!("Found {:?} dirs, {:?} files and {:?} entries. Diff: {}", dir_hash.len(), file_hash.len(), store_hash.len(), 0);
-    }
+        let connection = self.establish_connection();
+        diesel::insert_into(e::entries)
+            .values(&insert_query)
+            .execute(&connection).expect("Failed to execute query");
 
-    pub fn get_url(&self) {
-        let url = String::from("test.sqlite3");
 
-        println!("Url: {:?}", url);
-        //        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
-        //        SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite")
+        // Reload cache
+        self.entriesCache = e::entries.load(&connection).expect("Failed to load entries");
+
+        println!("Found {:?} dirs, {:?} files and {:?} collisions. Diff: {}", dir_hash.len(), file_hash.len(), collisions.len(), self.entriesCache.len());
+        let end = PreciseTime::now();
+
+        println!(
+            "Update took: {:?} ms",
+            start.to(end).num_milliseconds()
+        );
     }
 
     pub fn establish_connection(&self) -> SqliteConnection {
@@ -98,7 +120,7 @@ impl Store {
         //        pub path: String,
         //        pub size: u64,
         //        println!("Insert stuff");
-        diesel::insert_into(e::entries)
+        let ret = diesel::insert_into(e::entries)
             .values((e::name.eq("Phillies"), e::path.eq("D:\\temp"), e::size.eq(443)))
             .execute(&connection).expect("Failed to execute query");
 

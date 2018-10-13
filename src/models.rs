@@ -17,7 +17,7 @@ pub struct FileEntry {
     pub size: u64,
 }
 
-#[derive(Identifiable, Queryable, Debug)]
+#[derive(Identifiable, Queryable, AsChangeset, Debug)]
 #[table_name = "entries"]
 pub struct Entry {
     pub id: i32,
@@ -26,7 +26,7 @@ pub struct Entry {
     pub size: i64,
 }
 
-#[derive(Identifiable, Queryable, Debug)]
+#[derive(Identifiable, Queryable, AsChangeset, Debug)]
 #[table_name = "files"]
 pub struct File {
     pub id: i32,
@@ -36,7 +36,7 @@ pub struct File {
     pub size: i64,
 }
 
-#[derive(Identifiable, Queryable, Debug)]
+#[derive(Identifiable, Queryable, AsChangeset, Debug)]
 #[table_name = "labels"]
 pub struct Label {
     pub id: i32,

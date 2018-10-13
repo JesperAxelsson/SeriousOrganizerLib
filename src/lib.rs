@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(proc_macro_derive_resolution_fallback)]
 extern crate regex;
 extern crate scan_dir;
 extern crate time;
