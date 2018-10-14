@@ -8,7 +8,9 @@ use time::PreciseTime;
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use models::{DirEntry, FileEntry};
+use models::{DirEntry, Entry, File};
+use store::Store;
+
 
 pub fn create_match_regex(needle: &str) -> Regex {
     let mut res: String = String::new();
@@ -44,7 +46,7 @@ struct Search {
 // ************** Constant HWNDS **************
 
 pub struct Lens {
-    pub source: Vec<DirEntry>,
+    pub source: Store,
     pub ix_list: Vec<usize>,
 
     search: Search,
@@ -58,21 +60,24 @@ impl Lens {
             regex: Regex::new(".*").unwrap(),
         };
 
+        let mut source = Store::init();
+        source.load_from_store();
+
         Lens {
-            source: Vec::new(),
+            source,
             ix_list: Vec::new(),
             search,
             //            orderby_func: None,
         }
     }
 
-    pub fn update_data(&mut self, mut data: &mut Vec<DirEntry>) {
+    pub fn update_data(&mut self, data: &mut Vec<DirEntry>) {
         println!("Starting data update");
 
         self.ix_list.clear();
-        self.source.clear();
-
-        self.source.append(&mut data);
+//        self.source.clear();
+//        self.source.append(&mut data);
+        self.source.update(data);
 
         println!("Data updated");
 
@@ -86,7 +91,7 @@ impl Lens {
 
         let search = &self.search;
 
-        for (i, e) in self.source.iter().enumerate() {
+        for (i, e) in self.source.get_all_entries().iter().enumerate() {
             if search.regex.is_match(&e.name) {
                 self.ix_list.push(i);
             }
@@ -101,14 +106,14 @@ impl Lens {
         );
     }
 
-    pub fn order_by<F, T>(&mut self, compare: F)
-    where
-        F: FnMut(&DirEntry) -> T,
-        T: Ord,
-    {
-        self.source.sort_by_key(compare);
-        self.update_ix_list();
-    }
+//    pub fn order_by<F, T>(&mut self, compare: F)
+//        where
+//            F: FnMut(&DirEntry) -> T,
+//            T: Ord,
+//    {
+////        self.source.sort_by_key(compare);
+//        self.update_ix_list();
+//    }
 
     pub fn update_search_text(&mut self, new_string: &str) -> Option<usize> {
         if new_string != self.search.string {
@@ -122,9 +127,16 @@ impl Lens {
         None
     }
 
-    pub fn get_dir_entry(&self, ix: usize) -> Option<&DirEntry> {
+    pub fn get_dir_entry(&self, ix: usize) -> Option<&Entry> {
         if let Some(cix) = self.convert_ix(ix) {
-            return self.source.get(cix);
+            return self.source.entriesCache.get(cix);
+        }
+        None
+    }
+
+    pub fn get_dir_files(&self, ix: usize) -> Option<&Vec<File>> {
+        if let Some(entry) = self.get_dir_entry(ix) {
+            return self.source.get_files(entry);
         }
         None
     }
@@ -142,16 +154,16 @@ impl Lens {
     }
 
     pub fn get_file_count(&self, ix: usize) -> Option<usize> {
-        if let Some(ref dir) = self.get_dir_entry(ix) {
-            Some(dir.files.len())
+        if let Some(ref files) = self.get_dir_files(ix) {
+            Some(files.len())
         } else {
             None
         }
     }
 
-    pub fn get_file_entry(&self, dir_ix: usize, file_ix: usize) -> Option<&FileEntry> {
-        if let Some(ref dir) = self.get_dir_entry(dir_ix) {
-            return dir.files.get(file_ix);
+    pub fn get_file_entry(&self, dir_ix: usize, file_ix: usize) -> Option<&File> {
+        if let Some(ref files) = self.get_dir_files(dir_ix) {
+            return files.get(file_ix);
         }
         None
     }
