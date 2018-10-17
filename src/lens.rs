@@ -75,8 +75,6 @@ impl Lens {
         println!("Starting data update");
 
         self.ix_list.clear();
-//        self.source.clear();
-//        self.source.append(&mut data);
         self.source.update(data);
 
         println!("Data updated");

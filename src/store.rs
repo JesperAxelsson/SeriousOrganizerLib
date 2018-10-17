@@ -47,8 +47,10 @@ impl Store {
             self.filesCache.insert(entry.id, Vec::new());
         }
 
+        println!("Got {} files in filecache", self.filesCache.len());
+
         for file in files {
-            let files = self.filesCache.get_mut(&file.entry_id).expect("Did not find files that really should be there");
+            let files = self.filesCache.get_mut(&file.entry_id).expect(&format!("Did not find files that really should be there: {} path: {}", file.entry_id, file.path));
             files.push(file);
         }
 
