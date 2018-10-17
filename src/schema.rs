@@ -31,6 +31,10 @@ table! {
     }
 }
 
+joinable!(entry2labels -> entries (entry_id));
+joinable!(entry2labels -> labels (label_id));
+joinable!(files -> entries (entry_id));
+
 allow_tables_to_appear_in_same_query!(
     entries,
     entry2labels,

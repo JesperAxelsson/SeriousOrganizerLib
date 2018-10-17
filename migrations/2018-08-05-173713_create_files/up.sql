@@ -6,5 +6,5 @@ CREATE TABLE files (
   name TEXT NOT NULL,
   path TEXT NOT NULL,
   size BigInt NOT NULL,
-  FOREIGN KEY(entry_id) REFERENCES entries(entry_id) ON DELETE CASCADE
+  FOREIGN KEY(entry_id) REFERENCES entries(id) ON DELETE CASCADE
 );
