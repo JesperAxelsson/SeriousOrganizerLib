@@ -104,14 +104,12 @@ impl Lens {
         );
     }
 
-//    pub fn order_by<F, T>(&mut self, compare: F)
-//        where
-//            F: FnMut(&DirEntry) -> T,
-//            T: Ord,
-//    {
-////        self.source.sort_by_key(compare);
-//        self.update_ix_list();
-//    }
+    pub fn order_by<F, K>(&mut self, f: F)
+        where F: FnMut(&Entry) -> K, K: Ord
+    {
+        self.source.entriesCache.sort_unstable_by_key(f);
+        self.update_ix_list();
+    }
 
     pub fn update_search_text(&mut self, new_string: &str) -> Option<usize> {
         if new_string != self.search.string {
