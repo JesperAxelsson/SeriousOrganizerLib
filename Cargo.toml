@@ -18,6 +18,10 @@ diesel = { version = "1.3.3", default-features = false, features = ["sqlite"] }
 #diesel_codegen = { version = "*", default-features = false, features = ["sqlite", "nightly"] }
 dotenv = "0.13.0"
 
+num-traits = "0.2"
+num-derive = "0.2.*"
+
+
 # log = { version = "0.4.1", features = ["release_max_level_warn"] }
 
 #[dependencies.rusqlite]

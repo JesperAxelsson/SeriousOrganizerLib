@@ -1,6 +1,8 @@
 // mod filter;
 // extern crate intmap;
 
+use num_derive::{FromPrimitive, ToPrimitive};
+
 use regex::{escape, Regex, RegexBuilder};
 use time::PreciseTime;
 
@@ -43,20 +45,6 @@ struct Search {
     regex: Regex,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum SortColumn {
-    Name,
-    Path,
-    Date,
-    Size,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum SortOrder {
-    Asc,
-    Desc,
-}
-
 #[derive(Debug)]
 pub struct Sort {
     column: SortColumn,
@@ -68,6 +56,24 @@ impl Sort {
         Sort { column, order }
     }
 }
+
+
+#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
+#[repr(u32)]
+pub enum SortColumn {
+    Name = 0,
+    Path = 1,
+    Date = 2,
+    Size = 3,
+}
+
+#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
+#[repr(u32)]
+pub enum SortOrder {
+    Asc = 0,
+    Desc = 1,
+}
+
 
 // ************** Constant HWNDS **************
 
@@ -122,7 +128,7 @@ impl Lens {
                 }
             }
         }
-        
+
         self.sort();
 
         let end = PreciseTime::now();

@@ -10,6 +10,10 @@ extern crate serde;
 extern crate serde_derive;
 
 #[macro_use]
+extern crate num_derive;
+extern crate num_traits;
+
+#[macro_use]
 extern crate diesel;
 extern crate dotenv;
 
