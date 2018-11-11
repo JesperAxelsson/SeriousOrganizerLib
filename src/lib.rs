@@ -3,7 +3,7 @@
 extern crate regex;
 extern crate scan_dir;
 extern crate time;
-extern crate walkdir;
+//extern crate walkdir;
 //extern crate rusqlite;
 extern crate serde;
 #[macro_use]
