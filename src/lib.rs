@@ -15,7 +15,7 @@ extern crate num_traits;
 
 #[macro_use]
 extern crate diesel;
-extern crate dotenv;
+//extern crate dotenv;
 
 pub mod dir_search;
 pub mod lens;
