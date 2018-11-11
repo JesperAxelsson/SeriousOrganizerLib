@@ -43,6 +43,32 @@ struct Search {
     regex: Regex,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum SortColumn {
+    Name,
+    Path,
+    Date,
+    Size,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum SortOrder {
+    Asc,
+    Desc,
+}
+
+#[derive(Debug)]
+pub struct Sort {
+    column: SortColumn,
+    order: SortOrder,
+}
+
+impl Sort {
+    pub fn new(column: SortColumn, order: SortOrder) -> Self {
+        Sort { column, order }
+    }
+}
+
 // ************** Constant HWNDS **************
 
 pub struct Lens {
@@ -50,7 +76,7 @@ pub struct Lens {
     pub ix_list: Vec<usize>,
 
     search: Search,
-    //    orderby_func: Option<Box<Fn(&DirEntry)->()>>,
+    sort: Sort,
 }
 
 impl Lens {
@@ -67,7 +93,7 @@ impl Lens {
             source,
             ix_list: Vec::new(),
             search,
-            //            orderby_func: None,
+            sort: Sort::new(SortColumn::Name, SortOrder::Asc),
         }
     }
 
@@ -87,13 +113,17 @@ impl Lens {
 
         self.ix_list.clear();
 
-        let search = &self.search;
+        {
+            let search = &self.search;
 
-        for (i, e) in self.source.get_all_entries().iter().enumerate() {
-            if search.regex.is_match(&e.name) {
-                self.ix_list.push(i);
+            for (i, e) in self.source.get_all_entries().iter().enumerate() {
+                if search.regex.is_match(&e.name) {
+                    self.ix_list.push(i);
+                }
             }
         }
+        
+        self.sort();
 
         let end = PreciseTime::now();
 
@@ -104,11 +134,39 @@ impl Lens {
         );
     }
 
-    pub fn order_by<F, K>(&mut self, f: F)
-        where F: FnMut(&Entry) -> K, K: Ord
+    pub fn order_by(&mut self, column: SortColumn, order: SortOrder)
     {
-        self.source.entriesCache.sort_unstable_by_key(f);
-        self.update_ix_list();
+        self.sort = Sort::new(column, order);
+        self.sort();
+    }
+
+
+    pub fn sort(&mut self) {
+        let column = &self.sort.column;
+        let order = self.sort.order;
+
+        let entries: &Vec<Entry> = self.source.entriesCache.as_ref();
+
+        let selector = |ax: usize, bx: usize| {
+            let a = &entries[ax];
+            let b = &entries[bx];
+
+            match column {
+                SortColumn::Date => a.name.cmp(&b.name),
+                SortColumn::Name => a.name.cmp(&b.name),
+                SortColumn::Path => a.path.cmp(&b.path),
+                SortColumn::Size => a.size.cmp(&b.size),
+            }
+        };
+
+        self.ix_list.sort_by(move |a, b| {
+            let ordered = selector(*a, *b);
+
+            match order {
+                SortOrder::Asc => ordered,
+                SortOrder::Desc => ordered.reverse(),
+            }
+        });
     }
 
     pub fn update_search_text(&mut self, new_string: &str) -> Option<usize> {

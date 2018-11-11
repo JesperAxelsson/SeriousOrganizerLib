@@ -17,7 +17,7 @@ pub struct FileEntry {
     pub size: u64,
 }
 
-#[derive(Identifiable, Queryable, AsChangeset, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
 #[table_name = "entries"]
 pub struct Entry {
     pub id: i32,
