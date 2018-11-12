@@ -31,6 +31,12 @@ impl Store {
         }
     }
 
+    pub fn establish_connection(&self) -> SqliteConnection {
+        //        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
+        let url = String::from("test.sqlite3");
+        SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite")
+    }
+
     pub fn load_from_store(&mut self) {
         let conn = self.establish_connection();
 //        conn.execute("DELETE FROM entries").unwrap();
@@ -182,11 +188,6 @@ impl Store {
         return self.filesCache.get(&entry.id);
     }
 
-    pub fn establish_connection(&self) -> SqliteConnection {
-        //        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
-        let url = String::from("test.sqlite3");
-        SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite")
-    }
 
     pub fn test_db(&mut self) {
         //        use schema::entries::dsl::*;
