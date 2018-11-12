@@ -89,12 +89,12 @@ impl Store {
                 collisions.insert(entry.path.clone());
                 let new_size = dir_entry.size as i64;
                 if entry.size != new_size {
-                    println!("Update entry: {} {}", entry.path, entry.name);
+//                    println!("Update entry: {} {}", entry.path, entry.name);
                     diesel::update(entry).set(e::size.eq(new_size)).execute(&connection).expect("Failed to update entry");
                 }
             } else {
                 // Delete entries not in entries
-                println!("Delete entry: {} {}", entry.path, entry.name);
+//                println!("Delete entry: {} {}", entry.path, entry.name);
                 diesel::delete(e::entries.filter(e::id.eq(entry.id))).execute(&connection).expect("Failed to delete entry");
             }
         }
@@ -104,7 +104,7 @@ impl Store {
         for (key, value) in dir_hash.iter() {
             // Insert
             if !collisions.contains(key.clone()) {
-                println!("Insert entry: {}", key);
+//                println!("Insert entry: {}", key);
                 insert_query.push((e::name.eq(&value.name), e::path.eq(&value.path), e::size.eq(value.size as i64)));
             }
         }
@@ -114,11 +114,10 @@ impl Store {
             .execute(&connection).expect("Failed to execute entry insert query");
 
 
-        println!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
         // Reload entries cache
         self.entriesCache = e::entries.load(&connection).expect("Failed to load entries");
 
-        println!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
+//        println!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
 
         // *** Start files updates ***
         let mut insert_query = Vec::new();
@@ -144,12 +143,12 @@ impl Store {
                         // File exists, check for diffs
                         let new_size = oldFile.size as i64;
                         if file.size != new_size {
-                            println!("Update file: {}", oldFile.path);
+//                            println!("Update file: {}", oldFile.path);
                             diesel::update(file).set(f::size.eq(new_size)).execute(&connection).expect("Failed to update file");
                         }
                     } else {
                         // File were removed
-                        println!("Delete file: {}", entry.path);
+//                        println!("Delete file: {}", entry.path);
                         diesel::delete(f::files.filter(f::id.eq(file.id))).execute(&connection).expect("Failed to delete entry");
                     }
                 }
@@ -158,7 +157,7 @@ impl Store {
             // Entry is new, insert all files
             for file in dir.files.iter() {
                 if !file_lookup.contains(&file.path) {
-                    println!("Insert file: {}", file.path);
+//                    println!("Insert file: {}", file.path);
                     insert_query.push((f::entry_id.eq(entry.id), f::name.eq(&file.name), f::path.eq(&file.path), f::size.eq(file.size as i64)));
                 }
             }
