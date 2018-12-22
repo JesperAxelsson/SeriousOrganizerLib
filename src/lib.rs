@@ -1,17 +1,17 @@
 #![allow(non_snake_case)]
 #![allow(proc_macro_derive_resolution_fallback)]
-extern crate regex;
-extern crate scan_dir;
-extern crate time;
+
+
+
 //extern crate walkdir;
 //extern crate rusqlite;
-extern crate serde;
+
 #[macro_use]
 extern crate serde_derive;
 
 #[macro_use]
 extern crate num_derive;
-extern crate num_traits;
+
 
 #[macro_use]
 extern crate diesel;
