@@ -226,8 +226,11 @@ impl Store {
         return true;
     }
 
-    pub fn remove_label(&mut self, name: &str) {}
+    pub fn remove_label(&mut self, name: &str) { unimplemented!("remove_label() is not done yet!") }
 
+    pub fn get_all_labels(&self) -> &Vec<Label> {
+        return &self.labelsCache;
+    }
 
     // *** Test? ***
     pub fn test_db(&mut self) {
