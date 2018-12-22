@@ -7,9 +7,12 @@ use diesel::prelude::*;
 //use diesel::sqlite::SqliteConnection;
 //
 use models::*;
+
 use schema::entries::dsl as e;
 use schema::files::dsl as f;
 use schema::labels::dsl as l;
+use schema::entry2labels::dsl as e2l;
+
 use std::collections::HashMap;
 
 use time::PreciseTime;
@@ -17,7 +20,7 @@ use time::PreciseTime;
 
 
 pub struct Store {
-    pub   entriesCache: Vec<Entry>,
+    pub entriesCache: Vec<Entry>,
     filesCache: HashMap<i32, Vec<File>>,
     labelsCache: Vec<Label>,
 }
@@ -44,6 +47,7 @@ impl Store {
         self.entriesCache = e::entries.load(&conn).expect("Failed to load entries");
         self.load_files(&conn);
         self.labelsCache = l::labels.load(&conn).expect("Failed to load labels");
+        self.load_labels(&conn);
     }
 
     fn load_files(&mut self, connection: &SqliteConnection) {
@@ -61,6 +65,18 @@ impl Store {
         }
 
         println!("Now got files for entries {}", self.filesCache.len());
+    }
+
+    fn load_labels(&mut self, connection: &SqliteConnection) {
+        let entry2label: Vec<Entry2Label> = e2l::entry2labels.load(connection).expect("Failed to load entry mapping");
+
+        let mut lbl_map: HashMap<i32, Vec<i32>> = HashMap::new();
+
+        for e2l in entry2label.iter() {
+//            let vec = lbl_map.get_mut(&e2l.label_id).unwrap();
+            let vec = lbl_map.entry(e2l.entry_id).or_insert(Vec::new());
+            vec.push(e2l.label_id);
+        }
     }
 
     pub fn update(&mut self, dir_entries: &Vec<DirEntry>) {
@@ -185,6 +201,18 @@ impl Store {
 
     pub fn get_files(&self, entry: &Entry) -> Option<&Vec<File>> {
         return self.filesCache.get(&entry.id);
+    }
+
+    pub fn add_label(&mut self, name: &str) -> bool {
+        if self.labelsCache.iter().any(|lbl| lbl.name == name) {
+            return false;
+        }
+
+        let connection = self.establish_connection();
+        diesel::insert_into(l::labels).values(l::name.eq(name)).execute(&connection).expect("Failed to insert new label");
+        self.labelsCache = l::labels.load(&connection).expect("Failed to load labels");
+
+        return true;
     }
 
 
