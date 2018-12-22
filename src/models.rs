@@ -1,6 +1,6 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 
-use schema::*;
+use crate::schema::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DirEntry {

@@ -10,8 +10,8 @@ use time::PreciseTime;
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use models::{DirEntry, Entry, File};
-use store::Store;
+use crate::models::{DirEntry, Entry, File};
+use crate::store::Store;
 
 
 pub fn create_match_regex(needle: &str) -> Regex {

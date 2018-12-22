@@ -6,12 +6,12 @@ use diesel;
 use diesel::prelude::*;
 //use diesel::sqlite::SqliteConnection;
 //
-use models::*;
+use crate::models::*;
 
-use schema::entries::dsl as e;
-use schema::files::dsl as f;
-use schema::labels::dsl as l;
-use schema::entry2labels::dsl as e2l;
+use crate::schema::entries::dsl as e;
+use crate::schema::files::dsl as f;
+use crate::schema::labels::dsl as l;
+use crate::schema::entry2labels::dsl as e2l;
 
 use std::collections::HashMap;
 

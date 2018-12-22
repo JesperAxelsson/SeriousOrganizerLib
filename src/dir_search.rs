@@ -6,7 +6,7 @@ use std::thread;
 
 use time::PreciseTime;
 
-use models::*;
+use crate::models::*;
 use scan_dir::ScanDir;
 
 impl Drop for DirEntry {
