@@ -227,4 +227,16 @@ impl Lens {
         }
         None
     }
+
+    pub fn add_label(&mut self, name: &str) {
+        self.source.add_label(name);
+    }
+
+    pub fn remove_label(&mut self, name: &str) {
+        self.source.remove_label(name);
+    }
+
+    pub fn get_labels(&mut self, name: &str) {
+        self.source.add_label(name);
+    }
 }

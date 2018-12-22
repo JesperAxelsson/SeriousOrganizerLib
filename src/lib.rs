@@ -2,19 +2,19 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 
 
-
 //extern crate walkdir;
 //extern crate rusqlite;
 
 #[macro_use]
 extern crate serde_derive;
 
-#[macro_use]
 extern crate num_derive;
 
 
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate diesel_derive_newtype;
 //extern crate dotenv;
 
 pub mod dir_search;

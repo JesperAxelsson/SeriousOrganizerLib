@@ -13,7 +13,7 @@ use crate::schema::files::dsl as f;
 use crate::schema::labels::dsl as l;
 use crate::schema::entry2labels::dsl as e2l;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use time::PreciseTime;
 //use schema::*;
@@ -21,8 +21,9 @@ use time::PreciseTime;
 
 pub struct Store {
     pub entriesCache: Vec<Entry>,
-    filesCache: HashMap<i32, Vec<File>>,
+    filesCache: HashMap<EntryId, Vec<File>>,
     labelsCache: Vec<Label>,
+    labelLookupCache: HashMap<LabelId, HashSet<EntryId>>,
 }
 
 impl Store {
@@ -31,6 +32,7 @@ impl Store {
             entriesCache: Vec::new(),
             filesCache: HashMap::new(),
             labelsCache: Vec::new(),
+            labelLookupCache: HashMap::new(),
         }
     }
 
@@ -60,7 +62,7 @@ impl Store {
         println!("Got {} files in filecache", self.filesCache.len());
 
         for file in files {
-            let files = self.filesCache.get_mut(&file.entry_id).expect(&format!("Did not find files that really should be there: {} path: {}", file.entry_id, file.path));
+            let files = self.filesCache.get_mut(&file.entry_id).expect(&format!("Did not find files that really should be there: {:?} path: {:?}", file.entry_id, file.path));
             files.push(file);
         }
 
@@ -70,13 +72,14 @@ impl Store {
     fn load_labels(&mut self, connection: &SqliteConnection) {
         let entry2label: Vec<Entry2Label> = e2l::entry2labels.load(connection).expect("Failed to load entry mapping");
 
-        let mut lbl_map: HashMap<i32, Vec<i32>> = HashMap::new();
+        let mut lbl_map: HashMap<LabelId, HashSet<EntryId>> = HashMap::new();
 
         for e2l in entry2label.iter() {
-//            let vec = lbl_map.get_mut(&e2l.label_id).unwrap();
-            let vec = lbl_map.entry(e2l.entry_id).or_insert(Vec::new());
-            vec.push(e2l.label_id);
+            let set = lbl_map.entry(e2l.label_id).or_insert(HashSet::new());
+            set.insert(e2l.entry_id);
         }
+
+        self.labelLookupCache = lbl_map;
     }
 
     pub fn update(&mut self, dir_entries: &Vec<DirEntry>) {
@@ -203,6 +206,14 @@ impl Store {
         return self.filesCache.get(&entry.id);
     }
 
+    // *** Labels ***
+    pub fn has_label(&mut self, entry_id: EntryId, label_id: LabelId) -> bool {
+        if let Some(entries) = self.labelLookupCache.get(&label_id) {
+            return entries.contains(&entry_id);
+        }
+        return false;
+    }
+
     pub fn add_label(&mut self, name: &str) -> bool {
         if self.labelsCache.iter().any(|lbl| lbl.name == name) {
             return false;
@@ -215,7 +226,10 @@ impl Store {
         return true;
     }
 
+    pub fn remove_label(&mut self, name: &str) {}
 
+
+    // *** Test? ***
     pub fn test_db(&mut self) {
         //        use schema::entries::dsl::*;
 
