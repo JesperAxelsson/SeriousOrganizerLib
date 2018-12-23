@@ -1,6 +1,7 @@
 #![allow(proc_macro_derive_resolution_fallback)]
 
 use crate::schema::*;
+use serde::ser::{Serialize, Serializer};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
 pub struct EntryId(pub i32);
@@ -8,7 +9,18 @@ pub struct EntryId(pub i32);
 #[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
 pub struct LabelId(pub i32);
 
-#[derive(Serialize, Deserialize, Debug)]
+impl Serialize for LabelId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        let LabelId(id) = *self;
+        serializer.serialize_i32(id)
+    }
+}
+
+
+#[derive(Serialize, Debug)]
 pub struct DirEntry {
     pub name: String,
     pub path: String,
@@ -16,7 +28,7 @@ pub struct DirEntry {
     pub size: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct FileEntry {
     pub name: String,
     pub path: String,
@@ -42,7 +54,7 @@ pub struct File {
     pub size: i64,
 }
 
-#[derive(Identifiable, Queryable, AsChangeset, Debug)]
+#[derive(Serialize, Identifiable, Queryable, AsChangeset, Debug)]
 #[table_name = "labels"]
 pub struct Label {
     pub id: LabelId,
