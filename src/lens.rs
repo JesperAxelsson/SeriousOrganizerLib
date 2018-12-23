@@ -236,7 +236,7 @@ impl Lens {
         self.source.remove_label(LabelId(id as i32));
     }
 
-    pub fn get_labels(&mut self) -> &Vec<Label> {
+    pub fn get_labels(&self) -> &Vec<Label> {
         self.source.get_all_labels()
     }
 }
