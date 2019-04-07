@@ -242,6 +242,18 @@ impl Store {
     }
 
     // *** Labels ***
+    pub fn dir_labels(&self, entry_id: EntryId) -> Vec<LabelId> {
+        let mut labels = Vec::new();
+
+        for (label_id, entries) in self.labelLookupCache.iter() {
+            if entries.contains(&entry_id) {
+                labels.push(*label_id);
+            }
+        }
+
+        return labels;
+    }
+
     pub fn has_label(&mut self, entry_id: EntryId, label_id: LabelId) -> bool {
         if let Some(entries) = self.labelLookupCache.get(&label_id) {
             return entries.contains(&entry_id);
