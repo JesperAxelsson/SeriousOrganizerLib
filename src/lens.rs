@@ -228,17 +228,11 @@ impl Lens {
         None
     }
 
-    pub fn add_label(&mut self, name: &str) {
-        self.source.add_label(name);
-    }
+    pub fn add_label(&mut self, name: &str) { self.source.add_label(name); }
 
-    pub fn remove_label(&mut self, id: u32) {
-        self.source.remove_label(LabelId(id as i32));
-    }
+    pub fn remove_label(&mut self, id: u32) { self.source.remove_label(LabelId(id as i32)); }
 
-    pub fn get_labels(&self) -> &Vec<Label> {
-        self.source.get_all_labels()
-    }
+    pub fn get_labels(&self) -> &Vec<Label> { self.source.get_all_labels() }
 
     pub fn entry_labels(&self, id: u32) -> Vec<LabelId> { self.source.dir_labels(EntryId(id as i32)) }
 }
