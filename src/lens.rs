@@ -10,7 +10,7 @@ use time::PreciseTime;
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use crate::models::{DirEntry, Entry, File, Label, LabelId};
+use crate::models::{DirEntry, Entry, EntryId, File, Label, LabelId};
 use crate::store::Store;
 
 
@@ -239,4 +239,6 @@ impl Lens {
     pub fn get_labels(&self) -> &Vec<Label> {
         self.source.get_all_labels()
     }
+
+    pub fn entry_labels(&self, id: u32) -> Vec<LabelId> { self.source.dir_labels(EntryId(id as i32)) }
 }
