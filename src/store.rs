@@ -9,15 +9,14 @@ use diesel::prelude::*;
 use crate::models::*;
 
 use crate::schema::entries::dsl as e;
+use crate::schema::entry2labels::dsl as e2l;
 use crate::schema::files::dsl as f;
 use crate::schema::labels::dsl as l;
-use crate::schema::entry2labels::dsl as e2l;
 
 use std::collections::{HashMap, HashSet};
 
 use time::PreciseTime;
 //use schema::*;
-
 
 pub struct Store {
     pub entriesCache: Vec<Entry>,
@@ -39,12 +38,18 @@ impl Store {
     pub fn establish_connection(&self) -> SqliteConnection {
         //        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
         let url = String::from("test.sqlite3");
-        SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite")
+        let connection = SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite");
+
+        connection
+            .execute("PRAGMA foreign_keys = ON")
+            .expect("Failed to set pragmas");
+
+        return connection;
     }
 
     pub fn load_from_store(&mut self) {
         let conn = self.establish_connection();
-//        conn.execute("DELETE FROM entries").unwrap();
+        //        conn.execute("DELETE FROM entries").unwrap();
 
         self.entriesCache = e::entries.load(&conn).expect("Failed to load entries");
         self.load_files(&conn);
@@ -62,7 +67,10 @@ impl Store {
         println!("Got {} files in filecache", self.filesCache.len());
 
         for file in files {
-            let files = self.filesCache.get_mut(&file.entry_id).expect(&format!("Did not find files that really should be there: {:?} path: {:?}", file.entry_id, file.path));
+            let files = self.filesCache.get_mut(&file.entry_id).expect(&format!(
+                "Did not find files that really should be there: {:?} path: {:?}",
+                file.entry_id, file.path
+            ));
             files.push(file);
         }
 
@@ -70,7 +78,9 @@ impl Store {
     }
 
     fn load_labels(&mut self, connection: &SqliteConnection) {
-        let entry2label: Vec<Entry2Label> = e2l::entry2labels.load(connection).expect("Failed to load entry mapping");
+        let entry2label: Vec<Entry2Label> = e2l::entry2labels
+            .load(connection)
+            .expect("Failed to load entry mapping");
 
         let mut lbl_map: HashMap<LabelId, HashSet<EntryId>> = HashMap::new();
 
@@ -91,6 +101,7 @@ impl Store {
 
         let mut dir_hash = HashMap::with_capacity(dir_entries.len());
         let mut file_hash = HashMap::with_capacity(dir_entries.len());
+
         for dir in dir_entries.iter() {
             for file in dir_entries.iter() {
                 file_hash.insert(&file.path, file);
@@ -108,13 +119,18 @@ impl Store {
                 collisions.insert(entry.path.clone());
                 let new_size = dir_entry.size as i64;
                 if entry.size != new_size {
-//                    println!("Update entry: {} {}", entry.path, entry.name);
-                    diesel::update(entry).set(e::size.eq(new_size)).execute(&connection).expect("Failed to update entry");
+                    //                    println!("Update entry: {} {}", entry.path, entry.name);
+                    diesel::update(entry)
+                        .set(e::size.eq(new_size))
+                        .execute(&connection)
+                        .expect("Failed to update entry");
                 }
             } else {
                 // Delete entries not in entries
-//                println!("Delete entry: {} {}", entry.path, entry.name);
-                diesel::delete(e::entries.filter(e::id.eq(entry.id))).execute(&connection).expect("Failed to delete entry");
+                //                println!("Delete entry: {} {}", entry.path, entry.name);
+                diesel::delete(e::entries.filter(e::id.eq(entry.id)))
+                    .execute(&connection)
+                    .expect("Failed to delete entry");
             }
         }
 
@@ -123,27 +139,32 @@ impl Store {
         for (key, value) in dir_hash.iter() {
             // Insert
             if !collisions.contains(key.clone()) {
-//                println!("Insert entry: {}", key);
-                insert_query.push((e::name.eq(&value.name), e::path.eq(&value.path), e::size.eq(value.size as i64)));
+                //                println!("Insert entry: {}", key);
+                insert_query.push((
+                    e::name.eq(&value.name),
+                    e::path.eq(&value.path),
+                    e::size.eq(value.size as i64),
+                ));
             }
         }
 
         diesel::insert_into(e::entries)
             .values(&insert_query)
-            .execute(&connection).expect("Failed to execute entry insert query");
-
+            .execute(&connection)
+            .expect("Failed to execute entry insert query");
 
         // Reload entries cache
         self.entriesCache = e::entries.load(&connection).expect("Failed to load entries");
 
-//        println!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
+        //        println!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
 
         // *** Start files updates ***
         let mut insert_query = Vec::new();
 
-
         for entry in self.entriesCache.iter() {
-            let dir = dir_hash.get(&entry.path).expect(&format!("Failed to find dir when updating files: {}", entry.path));
+            let dir = dir_hash
+                .get(&entry.path)
+                .expect(&format!("Failed to find dir when updating files: {}", entry.path));
 
             let mut file_lookup = HashSet::new();
 
@@ -162,13 +183,18 @@ impl Store {
                         // File exists, check for diffs
                         let new_size = oldFile.size as i64;
                         if file.size != new_size {
-//                            println!("Update file: {}", oldFile.path);
-                            diesel::update(file).set(f::size.eq(new_size)).execute(&connection).expect("Failed to update file");
+                            //                            println!("Update file: {}", oldFile.path);
+                            diesel::update(file)
+                                .set(f::size.eq(new_size))
+                                .execute(&connection)
+                                .expect("Failed to update file");
                         }
                     } else {
                         // File were removed
-//                        println!("Delete file: {}", entry.path);
-                        diesel::delete(f::files.filter(f::id.eq(file.id))).execute(&connection).expect("Failed to delete entry");
+                        //                        println!("Delete file: {}", entry.path);
+                        diesel::delete(f::files.filter(f::id.eq(file.id)))
+                            .execute(&connection)
+                            .expect("Failed to delete entry");
                     }
                 }
             }
@@ -176,26 +202,35 @@ impl Store {
             // Entry is new, insert all files
             for file in dir.files.iter() {
                 if !file_lookup.contains(&file.path) {
-//                    println!("Insert file: {}", file.path);
-                    insert_query.push((f::entry_id.eq(entry.id), f::name.eq(&file.name), f::path.eq(&file.path), f::size.eq(file.size as i64)));
+                    //                    println!("Insert file: {}", file.path);
+                    insert_query.push((
+                        f::entry_id.eq(entry.id),
+                        f::name.eq(&file.name),
+                        f::path.eq(&file.path),
+                        f::size.eq(file.size as i64),
+                    ));
                 }
             }
         }
 
         diesel::insert_into(f::files)
             .values(&insert_query)
-            .execute(&connection).expect("Failed to execute file insert query");
+            .execute(&connection)
+            .expect("Failed to execute file insert query");
 
         self.load_files(&connection);
 
         // Done!
-        println!("Found {:?} dirs, {:?} files and {:?} collisions. Diff: {}", dir_hash.len(), file_hash.len(), collisions.len(), self.entriesCache.len());
+        println!(
+            "Found {:?} dirs, {:?} files and {:?} collisions. Diff: {}",
+            dir_hash.len(),
+            file_hash.len(),
+            collisions.len(),
+            self.entriesCache.len()
+        );
         let end = PreciseTime::now();
 
-        println!(
-            "Update took: {:?} ms",
-            start.to(end).num_milliseconds()
-        );
+        println!("Update took: {:?} ms", start.to(end).num_milliseconds());
     }
 
     pub fn get_all_entries(&self) -> &Vec<Entry> {
@@ -220,13 +255,18 @@ impl Store {
         }
 
         let connection = self.establish_connection();
-        diesel::insert_into(l::labels).values(l::name.eq(name)).execute(&connection).expect("Failed to insert new label");
+        diesel::insert_into(l::labels)
+            .values(l::name.eq(name))
+            .execute(&connection)
+            .expect("Failed to insert new label");
         self.labelsCache = l::labels.load(&connection).expect("Failed to load labels");
 
         return true;
     }
 
-    pub fn remove_label(&mut self, id: LabelId) { unimplemented!("remove_label() is not done yet!") }
+    pub fn remove_label(&mut self, id: LabelId) {
+        unimplemented!("remove_label() is not done yet!")
+    }
 
     pub fn get_all_labels(&self) -> &Vec<Label> {
         return &self.labelsCache;
@@ -236,7 +276,6 @@ impl Store {
     pub fn test_db(&mut self) {
         //        use schema::entries::dsl::*;
 
-
         println!("Get connection");
         let connection = self.establish_connection();
         //        pub name: String,
@@ -245,7 +284,8 @@ impl Store {
         //        println!("Insert stuff");
         let ret = diesel::insert_into(e::entries)
             .values((e::name.eq("Phillies"), e::path.eq("D:\\temp"), e::size.eq(443)))
-            .execute(&connection).expect("Failed to execute query");
+            .execute(&connection)
+            .expect("Failed to execute query");
 
         let entries2: Vec<Entry> = e::entries.load(&connection).unwrap();
         println!("Got entries: {}", entries2.len());
