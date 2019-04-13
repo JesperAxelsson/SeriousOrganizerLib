@@ -20,6 +20,17 @@ impl Serialize for LabelId {
 }
 
 
+impl Serialize for EntryId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        let EntryId(id) = *self;
+        serializer.serialize_i32(id)
+    }
+}
+
+
 #[derive(Serialize, Debug)]
 pub struct DirEntry {
     pub name: String,

@@ -242,6 +242,43 @@ impl Store {
     }
 
     // *** Labels ***
+    pub fn set_entry_labels(&mut self, entry_id: EntryId, label_ids: Vec<LabelId>) {
+        let current_labels = self.dir_labels(entry_id);
+
+        let remove_labels: Vec<LabelId> = current_labels.iter()
+            .filter(|lbl| !label_ids.iter().any(|lid| lid == *lbl))
+            .cloned()
+            .collect();
+
+
+        let connection = self.establish_connection();
+
+        // Remove labels not set
+        for label_id in remove_labels {
+            diesel::delete(e2l::entry2labels.filter(e2l::entry_id.eq(entry_id))
+                .filter(e2l::label_id.eq(label_id)))
+                .execute(&connection)
+                .expect("Failed to delete entry2labels");
+        }
+
+        // Add new labels
+        let mut insert_query = Vec::new();
+
+        for label_id in label_ids.iter() {
+            if !current_labels.iter().any(|l| l == label_id) {
+                insert_query.push((
+                    e2l::entry_id.eq(entry_id),
+                    e2l::label_id.eq(label_id),
+                ));
+            }
+        }
+
+        diesel::insert_into(e2l::entry2labels)
+            .values(&insert_query)
+            .execute(&connection)
+            .expect("Failed to execute entry2labels insert query");
+    }
+
     pub fn dir_labels(&self, entry_id: EntryId) -> Vec<LabelId> {
         let mut labels = Vec::new();
 

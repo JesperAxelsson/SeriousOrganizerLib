@@ -149,7 +149,7 @@ impl Lens {
 
     pub fn sort(&mut self) {
         let column = &self.sort.column;
-        let order = self.sort.order;
+        let order = &self.sort.order;
 
         let entries: &Vec<Entry> = self.source.entriesCache.as_ref();
 
@@ -235,4 +235,5 @@ impl Lens {
     pub fn get_labels(&self) -> &Vec<Label> { self.source.get_all_labels() }
 
     pub fn entry_labels(&self, id: u32) -> Vec<LabelId> { self.source.dir_labels(EntryId(id as i32)) }
+    pub fn set_entry_labels(&mut self, id: u32, labels: Vec<u32>) { self.source.set_entry_labels(EntryId(id as i32), labels.into_iter().map(|l| LabelId(l as i32)).collect()) }
 }
