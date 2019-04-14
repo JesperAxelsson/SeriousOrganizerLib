@@ -242,30 +242,15 @@ impl Store {
     }
 
     // *** Labels ***
-    pub fn set_entry_labels(&mut self, entry_id: EntryId, label_ids: Vec<LabelId>) {
-        let current_labels = self.dir_labels(entry_id);
+    pub fn set_entry_labels(&mut self, entry_ids: Vec<EntryId>, label_ids: Vec<LabelId>) {
+        use diesel::result::Error;
 
-        let remove_labels: Vec<LabelId> = current_labels.iter()
-            .filter(|lbl| !label_ids.iter().any(|lid| lid == *lbl))
-            .cloned()
-            .collect();
+        let mut insert_query = Vec::with_capacity(entry_ids.len() * label_ids.len());
 
+        for entry_id in entry_ids.iter() {
 
-        let connection = self.establish_connection();
-
-        // Remove labels not set
-        for label_id in remove_labels {
-            diesel::delete(e2l::entry2labels.filter(e2l::entry_id.eq(entry_id))
-                .filter(e2l::label_id.eq(label_id)))
-                .execute(&connection)
-                .expect("Failed to delete entry2labels");
-        }
-
-        // Add new labels
-        let mut insert_query = Vec::new();
-
-        for label_id in label_ids.iter() {
-            if !current_labels.iter().any(|l| l == label_id) {
+            // Add new labels
+            for label_id in label_ids.iter() {
                 insert_query.push((
                     e2l::entry_id.eq(entry_id),
                     e2l::label_id.eq(label_id),
@@ -273,10 +258,52 @@ impl Store {
             }
         }
 
-        diesel::insert_into(e2l::entry2labels)
-            .values(&insert_query)
-            .execute(&connection)
-            .expect("Failed to execute entry2labels insert query");
+        let connection = self.establish_connection();
+        connection.transaction::<_, Error, _>(  || {
+
+            // Remove labels not set
+            for slice in entry_ids.iter().collect::<Vec<_>>().chunks(500) {
+                diesel::delete(e2l::entry2labels.filter(e2l::entry_id.eq_any(slice.to_vec())))
+                    .execute(&connection)?;
+            }
+
+            println!("Labels deleted");
+
+
+            println!("Add labels");
+
+            for slice in insert_query.iter().collect::<Vec<_>>().chunks(5000) {
+//                for label_id in slice.iter() {
+//                    insert_query.push((
+//                        e2l::entry_id.eq(entry_id),
+//                        e2l::label_id.eq(label_id),
+//                    ));
+
+
+                diesel::insert_into(e2l::entry2labels)
+                    .values(slice.to_vec())
+                    .execute(&connection)?;
+//                }
+            }
+
+//                for entry_id in entry_ids {
+//
+//                    // Add new labels
+//                    let mut insert_query = Vec::new();
+//
+//                    for label_id in label_ids.iter() {
+//                        insert_query.push((
+//                            e2l::entry_id.eq(entry_id),
+//                            e2l::label_id.eq(label_id),
+//                        ));
+//                    }
+//                }
+
+            Ok(())
+        }).expect("Failed to set_entry_labels");
+
+        println!("All labels done");
+        self.load_labels(&connection);
     }
 
     pub fn dir_labels(&self, entry_id: EntryId) -> Vec<LabelId> {

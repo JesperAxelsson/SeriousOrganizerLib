@@ -238,5 +238,18 @@ impl Lens {
     pub fn get_labels(&self) -> &Vec<Label> { self.source.get_all_labels() }
 
     pub fn entry_labels(&self, id: u32) -> Vec<LabelId> { self.source.dir_labels(EntryId(id as i32)) }
-    pub fn set_entry_labels(&mut self, id: u32, labels: Vec<u32>) { self.source.set_entry_labels(EntryId(id as i32), labels.into_iter().map(|l| LabelId(l as i32)).collect()) }
+
+    pub fn set_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
+        let start = PreciseTime::now();
+        let count = entries.len();
+        self.source.set_entry_labels(entries.into_iter().map(|e| EntryId(e as i32)).collect(),
+                                     labels.into_iter().map(|l| LabelId(l as i32)).collect());
+
+        let end = PreciseTime::now();
+
+        println!(
+            "set_entry_labels update with {:?} entries took: {:?} ms",
+            count,
+            start.to(end).num_milliseconds());
+    }
 }
