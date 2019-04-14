@@ -95,12 +95,15 @@ impl Lens {
         let mut source = Store::init();
         source.load_from_store();
 
-        Lens {
+        let mut lens = Lens {
             source,
             ix_list: Vec::new(),
             search,
             sort: Sort::new(SortColumn::Name, SortOrder::Asc),
-        }
+        };
+        lens.update_ix_list();
+
+        lens
     }
 
     pub fn update_data(&mut self, data: &mut Vec<DirEntry>) {
