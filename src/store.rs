@@ -259,7 +259,7 @@ impl Store {
         }
 
         let connection = self.establish_connection();
-        connection.transaction::<_, Error, _>(  || {
+        connection.transaction::<_, Error, _>(|| {
 
             // Remove labels not set
             for slice in entry_ids.iter().collect::<Vec<_>>().chunks(500) {
@@ -273,31 +273,10 @@ impl Store {
             println!("Add labels");
 
             for slice in insert_query.iter().collect::<Vec<_>>().chunks(5000) {
-//                for label_id in slice.iter() {
-//                    insert_query.push((
-//                        e2l::entry_id.eq(entry_id),
-//                        e2l::label_id.eq(label_id),
-//                    ));
-
-
                 diesel::insert_into(e2l::entry2labels)
                     .values(slice.to_vec())
                     .execute(&connection)?;
-//                }
             }
-
-//                for entry_id in entry_ids {
-//
-//                    // Add new labels
-//                    let mut insert_query = Vec::new();
-//
-//                    for label_id in label_ids.iter() {
-//                        insert_query.push((
-//                            e2l::entry_id.eq(entry_id),
-//                            e2l::label_id.eq(label_id),
-//                        ));
-//                    }
-//                }
 
             Ok(())
         }).expect("Failed to set_entry_labels");
