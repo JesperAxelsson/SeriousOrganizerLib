@@ -23,6 +23,7 @@ pub struct Store {
     filesCache: HashMap<EntryId, Vec<File>>,
     labelsCache: Vec<Label>,
     labelLookupCache: HashMap<LabelId, HashSet<EntryId>>,
+    entryLabelLookup: HashMap<EntryId, HashSet<LabelId>>,
 }
 
 impl Store {
@@ -32,6 +33,7 @@ impl Store {
             filesCache: HashMap::new(),
             labelsCache: Vec::new(),
             labelLookupCache: HashMap::new(),
+            entryLabelLookup: HashMap::new(),
         }
     }
 
@@ -89,6 +91,14 @@ impl Store {
             set.insert(e2l.entry_id);
         }
 
+        let mut entry_map: HashMap<EntryId, HashSet<LabelId>> = HashMap::new();
+
+        for e2l in entry2label.iter() {
+            let set = entry_map.entry(e2l.entry_id).or_insert(HashSet::new());
+            set.insert(e2l.label_id);
+        }
+
+        self.entryLabelLookup = entry_map;
         self.labelLookupCache = lbl_map;
     }
 
@@ -285,6 +295,10 @@ impl Store {
         self.load_labels(&connection);
     }
 
+    pub fn entry_labels(&self, entry_id: EntryId) -> Option<&HashSet<LabelId>> {
+        return self.entryLabelLookup.get(&entry_id);
+    }
+
     pub fn dir_labels(&self, entry_id: EntryId) -> Vec<LabelId> {
         let mut labels = Vec::new();
 
@@ -297,7 +311,8 @@ impl Store {
         return labels;
     }
 
-    pub fn has_label(&mut self, entry_id: EntryId, label_id: LabelId) -> bool {
+
+    pub fn has_label(&self, entry_id: EntryId, label_id: LabelId) -> bool {
         if let Some(entries) = self.labelLookupCache.get(&label_id) {
             return entries.contains(&entry_id);
         }

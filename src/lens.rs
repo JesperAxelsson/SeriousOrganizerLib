@@ -6,6 +6,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use regex::{escape, Regex, RegexBuilder};
 use time::PreciseTime;
 
+use std::collections::HashSet;
 //use std::mem;
 //use std::cmp::Ordering;
 
@@ -80,6 +81,8 @@ pub enum SortOrder {
 pub struct Lens {
     pub source: Store,
     pub ix_list: Vec<usize>,
+    include_labels: HashSet<i32>,
+    exlude_labels: HashSet<i32>,
 
     search: Search,
     sort: Sort,
@@ -100,6 +103,9 @@ impl Lens {
             ix_list: Vec::new(),
             search,
             sort: Sort::new(SortColumn::Name, SortOrder::Asc),
+
+            include_labels: HashSet::new(),
+            exlude_labels: HashSet::new(),
         };
         lens.update_ix_list();
 
@@ -126,7 +132,7 @@ impl Lens {
             let search = &self.search;
 
             for (i, e) in self.source.get_all_entries().iter().enumerate() {
-                if search.regex.is_match(&e.name) {
+                if search.regex.is_match(&e.name) && self.label_filter(e.id) {
                     self.ix_list.push(i);
                 }
             }
@@ -141,6 +147,23 @@ impl Lens {
             self.ix_list.len(),
             start.to(end).num_milliseconds()
         );
+    }
+
+    fn label_filter(&self, entry_id: EntryId) -> bool {
+        if self.exlude_labels.is_empty() && self.include_labels.is_empty() { return true; }
+
+        if let Some(entry_labels) = self.source.entry_labels(entry_id) {
+            if self.exlude_labels.iter().any(|lbl| entry_labels.contains(&LabelId(*lbl))) {
+                return false;
+            }
+
+            if self.include_labels.iter().any(|lbl| entry_labels.contains(&LabelId(*lbl))) {
+                return true;
+            }
+        }
+
+
+        return false;
     }
 
     pub fn order_by(&mut self, column: SortColumn, order: SortOrder)
@@ -229,6 +252,28 @@ impl Lens {
             return files.get(file_ix);
         }
         None
+    }
+
+    pub fn add_inlude_label(&mut self, label_id: u32) {
+        let label_id = label_id as i32;
+        self.exlude_labels.remove(&label_id);
+        self.include_labels.insert(label_id);
+
+        self.update_ix_list();
+    }
+
+    pub fn add_exclude_label(&mut self, label_id: u32) {
+        let label_id = label_id as i32;
+        self.include_labels.remove(&label_id);
+        self.exlude_labels.insert(label_id);
+        self.update_ix_list();
+    }
+
+    pub fn remove_label_filter(&mut self, label_id: u32) {
+        let label_id = label_id as i32;
+        self.exlude_labels.remove(&label_id);
+        self.include_labels.remove(&label_id);
+        self.update_ix_list();
     }
 
     pub fn add_label(&mut self, name: &str) { self.source.add_label(name); }
