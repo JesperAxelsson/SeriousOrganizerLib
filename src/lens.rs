@@ -162,8 +162,11 @@ impl Lens {
             }
         }
 
-
-        return false;
+        if self.include_labels.is_empty() {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     pub fn order_by(&mut self, column: SortColumn, order: SortOrder)
