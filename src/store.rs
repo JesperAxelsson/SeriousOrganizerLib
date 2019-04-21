@@ -329,13 +329,21 @@ impl Store {
             .values(l::name.eq(name))
             .execute(&connection)
             .expect("Failed to insert new label");
+
         self.labelsCache = l::labels.load(&connection).expect("Failed to load labels");
+        self.load_labels(&connection);
 
         return true;
     }
 
     pub fn remove_label(&mut self, id: LabelId) {
-        unimplemented!("remove_label() is not done yet!")
+        let connection = self.establish_connection();
+
+        diesel::delete(l::labels.filter(l::id.eq(id)))
+            .execute(&connection).expect("Failed to delete label");
+
+        self.labelsCache = l::labels.load(&connection).expect("Failed to load labels");
+        self.load_labels(&connection);
     }
 
     pub fn get_all_labels(&self) -> &Vec<Label> {
