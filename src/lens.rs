@@ -145,8 +145,11 @@ impl Lens {
         println!(
             "ix_list update with {:?} entries took: {:?} ms",
             self.ix_list.len(),
-            start.to(end).num_milliseconds()
+            start.to(end).num_milliseconds(),
         );
+
+        println!("ix_list include: {:?}  ", self.include_labels);
+        println!("ix_list exclude: {:?}  ", self.exlude_labels);
     }
 
     fn label_filter(&self, entry_id: EntryId) -> bool {
@@ -281,7 +284,10 @@ impl Lens {
 
     pub fn add_label(&mut self, name: &str) { self.source.add_label(name); }
 
-    pub fn remove_label(&mut self, id: u32) { self.source.remove_label(LabelId(id as i32)); }
+    pub fn remove_label(&mut self, label_id: u32) {
+        self.source.remove_label(LabelId(label_id as i32));
+        self.remove_label_filter(label_id);
+    }
 
     pub fn get_labels(&self) -> &Vec<Label> { self.source.get_all_labels() }
 
