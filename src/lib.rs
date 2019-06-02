@@ -15,7 +15,8 @@ extern crate num_derive;
 extern crate diesel;
 #[macro_use]
 extern crate diesel_derive_newtype;
-//extern crate dotenv;
+#[macro_use]
+extern crate diesel_migrations;
 
 pub mod dir_search;
 pub mod lens;

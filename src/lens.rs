@@ -95,7 +95,7 @@ impl Lens {
             regex: Regex::new(".*").unwrap(),
         };
 
-        let mut source = Store::init();
+        let mut source = Store::init("test.sqlite3");
         source.load_from_store();
 
         let mut lens = Lens {

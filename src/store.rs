@@ -4,8 +4,9 @@
 
 use diesel;
 use diesel::prelude::*;
-//use diesel::sqlite::SqliteConnection;
-//
+
+use diesel_migrations;
+
 use crate::models::*;
 
 use crate::schema::entries::dsl as e;
@@ -18,7 +19,10 @@ use std::collections::{HashMap, HashSet};
 use time::PreciseTime;
 //use schema::*;
 
+embed_migrations!();
+
 pub struct Store {
+    db_url: String,
     pub entriesCache: Vec<Entry>,
     filesCache: HashMap<EntryId, Vec<File>>,
     labelsCache: Vec<Label>,
@@ -26,21 +30,40 @@ pub struct Store {
     entryLabelLookup: HashMap<EntryId, HashSet<LabelId>>,
 }
 
+
 impl Store {
-    pub fn init() -> Store {
-        Store {
+    pub fn init(db_url: &str) -> Store {
+        use std::path::Path;
+        use std::fs::File;
+
+        let db_path = Path::new(db_url);
+        if !db_path.exists() {
+            File::create(db_path).expect(&format!("Failed to create db_file: {:?}", db_path));
+        }
+
+
+        let store = Store {
+            db_url: db_url.to_string(),
             entriesCache: Vec::new(),
             filesCache: HashMap::new(),
             labelsCache: Vec::new(),
             labelLookupCache: HashMap::new(),
             entryLabelLookup: HashMap::new(),
-        }
+        };
+
+        let connection = store.establish_connection();
+
+
+        // By default the output is thrown out. If you want to redirect it to stdout, you
+        // should call embedded_migrations::run_with_output.
+        embedded_migrations::run_with_output(&connection, &mut std::io::stdout()).expect("Migrations Failed!");
+
+        store
     }
 
+
     pub fn establish_connection(&self) -> SqliteConnection {
-        //        let url = ::std::env::var("DATABASE_URL").expect("Failed to find DATABASE_URL");
-        let url = String::from("test.sqlite3");
-        let connection = SqliteConnection::establish(&url).expect("Failed to establish connection to sqlite");
+        let connection = SqliteConnection::establish(&self.db_url).expect("Failed to establish connection to sqlite");
 
         connection
             .execute("PRAGMA foreign_keys = ON")
