@@ -13,6 +13,8 @@ use crate::schema::entries::dsl as e;
 use crate::schema::entry2labels::dsl as e2l;
 use crate::schema::files::dsl as f;
 use crate::schema::labels::dsl as l;
+use crate::schema::locations::dsl as loc;
+
 
 use std::collections::{HashMap, HashSet};
 
@@ -72,6 +74,7 @@ impl Store {
         return connection;
     }
 
+    /*** Load cache ***/
     pub fn load_from_store(&mut self) {
         let conn = self.establish_connection();
         //        conn.execute("DELETE FROM entries").unwrap();
@@ -274,7 +277,7 @@ impl Store {
         return self.filesCache.get(&entry.id);
     }
 
-    // *** Labels ***
+    /*** Labels ***/
     pub fn set_entry_labels(&mut self, entry_ids: Vec<EntryId>, label_ids: Vec<LabelId>) {
         use diesel::result::Error;
 
@@ -343,7 +346,7 @@ impl Store {
     }
 
     pub fn add_label(&mut self, name: &str) -> bool {
-        if self.labelsCache.iter().any(|lbl| lbl.name == name) {
+        if self.labelsCache.iter().any(|lbl| &lbl.name == name) {
             return false;
         }
 
@@ -373,25 +376,29 @@ impl Store {
         return &self.labelsCache;
     }
 
-    // *** Test? ***
-    pub fn test_db(&mut self) {
-        //        use schema::entries::dsl::*;
-
-        println!("Get connection");
+    /*** Locations ***/
+    pub fn add_location(&mut self, path: &str) {
         let connection = self.establish_connection();
-        //        pub name: String,
-        //        pub path: String,
-        //        pub size: u64,
-        //        println!("Insert stuff");
-        let ret = diesel::insert_into(e::entries)
-            .values((e::name.eq("Phillies"), e::path.eq("D:\\temp"), e::size.eq(443)))
+        diesel::insert_into(loc::locations)
+            .values(loc::path.eq(path))
             .execute(&connection)
-            .expect("Failed to execute query");
+            .expect("Failed to insert new location");
+    }
 
-        let entries2: Vec<Entry> = e::entries.load(&connection).unwrap();
-        println!("Got entries: {}", entries2.len());
-        for e in &entries2 {
-            println!("{:?}", e);
-        }
+    pub fn remove_location(&mut self, id: LocationId) {
+        let connection = self.establish_connection();
+
+        diesel::delete(loc::locations.filter(loc::id.eq(id)))
+            .execute(&connection).expect("Failed to delete location");
+
+        self.labelsCache = l::labels.load(&connection).expect("Failed to load location");
+        self.load_labels(&connection);
+    }
+
+    pub fn get_locations(&mut self) -> Vec<Location> {
+        let connection = self.establish_connection();
+
+        let locations = loc::locations.load(&connection).expect("Failed to load locations");
+        return locations;
     }
 }

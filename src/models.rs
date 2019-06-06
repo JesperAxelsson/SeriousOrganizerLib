@@ -9,6 +9,9 @@ pub struct EntryId(pub i32);
 #[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
 pub struct LabelId(pub i32);
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
+pub struct LocationId(pub i32);
+
 impl Serialize for LabelId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
@@ -28,6 +31,25 @@ impl Serialize for EntryId {
         let EntryId(id) = *self;
         serializer.serialize_i32(id)
     }
+}
+
+
+impl Serialize for LocationId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        let LocationId(id) = *self;
+        serializer.serialize_i32(id)
+    }
+}
+
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
+#[table_name = "entries"]
+pub struct Location {
+    pub id: LocationId,
+    pub path: String,
 }
 
 

@@ -1,4 +1,11 @@
 table! {
+    locations (id) {
+        id -> Integer,
+        path -> Text,
+    }
+}
+
+table! {
     entries (id) {
         id -> Integer,
         name -> Text,
