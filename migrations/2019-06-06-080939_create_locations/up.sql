@@ -1,5 +1,7 @@
 
 CREATE TABLE locations (
  id INTEGER PRIMARY KEY,
- path TEXT NOT NULL
+ name TEXT NOT NULL,
+ path TEXT NOT NULL,
+ size BigInt NOT NULL
 );

@@ -3,55 +3,41 @@
 use crate::schema::*;
 use serde::ser::{Serialize, Serializer};
 
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
+pub struct LocationId(pub i32);
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
 pub struct EntryId(pub i32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
 pub struct LabelId(pub i32);
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
-pub struct LocationId(pub i32);
-
-impl Serialize for LabelId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-    {
-        let LabelId(id) = *self;
-        serializer.serialize_i32(id)
-    }
+macro_rules! serialize_id {
+    ($($t:tt),*) => (
+        $(impl Serialize for $t {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+                where
+                    S: Serializer,
+            {
+                let $t(id) = *self;
+                serializer.serialize_i32(id)
+            }   
+        })*
+    )
 }
 
-
-impl Serialize for EntryId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-    {
-        let EntryId(id) = *self;
-        serializer.serialize_i32(id)
-    }
-}
-
-
-impl Serialize for LocationId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-    {
-        let LocationId(id) = *self;
-        serializer.serialize_i32(id)
-    }
-}
+serialize_id!(LocationId, EntryId, LabelId);
 
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
-#[table_name = "entries"]
+#[table_name = "locations"]
 pub struct Location {
     pub id: LocationId,
+    pub name: String,
     pub path: String,
+    pub size: i64,
 }
-
 
 #[derive(Serialize, Debug)]
 pub struct DirEntry {
@@ -99,4 +85,11 @@ pub struct Label {
 pub struct Entry2Label {
     pub entry_id: EntryId,
     pub label_id: LabelId,
+}
+
+#[derive(Queryable, Debug)]
+//#[table_name = "entry2labels"]
+pub struct Location2Entry {
+    pub location_id: LocationId,
+    pub entry_id: EntryId,
 }

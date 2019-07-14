@@ -24,6 +24,7 @@ diesel_migrations = "1.4.0"
 num-traits = "0.2.6"
 num-derive = "0.2.4"
 diesel-derive-newtype = "0.1.2"
+ 
 
 
 # log = { version = "0.4.1", features = ["release_max_level_warn"] }
