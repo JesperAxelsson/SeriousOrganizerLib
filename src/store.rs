@@ -377,10 +377,10 @@ impl Store {
     }
 
     /*** Locations ***/
-    pub fn add_location(&mut self, path: &str) {
+    pub fn add_location(&mut self, name: &str,  path: &str) {
         let connection = self.establish_connection();
         diesel::insert_into(loc::locations)
-            .values(loc::path.eq(path))
+            .values((loc::name.eq(name), loc::path.eq(path), loc::size.eq(0)))
             .execute(&connection)
             .expect("Failed to insert new location");
     }
@@ -390,12 +390,9 @@ impl Store {
 
         diesel::delete(loc::locations.filter(loc::id.eq(id)))
             .execute(&connection).expect("Failed to delete location");
-
-        self.labelsCache = l::labels.load(&connection).expect("Failed to load location");
-        self.load_labels(&connection);
     }
 
-    pub fn get_locations(&mut self) -> Vec<Location> {
+    pub fn get_locations(&self) -> Vec<Location> {
         let connection = self.establish_connection();
 
         let locations = loc::locations.load(&connection).expect("Failed to load locations");

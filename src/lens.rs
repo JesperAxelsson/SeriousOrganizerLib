@@ -11,7 +11,7 @@ use std::collections::HashSet;
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use crate::models::{DirEntry, Entry, EntryId, File, Label, LabelId};
+use crate::models::{DirEntry, Entry, EntryId, File, Label, LabelId, LocationId, Location};
 use crate::store::Store;
 
 
@@ -305,5 +305,18 @@ impl Lens {
             "set_entry_labels update with {:?} entries took: {:?} ms",
             count,
             start.to(end).num_milliseconds());
+    }
+
+        /*** Locations ***/
+    pub fn add_location(&mut self, name: &str,  path: &str) {
+        self.source.add_location(name, path);
+    }
+
+    pub fn remove_location(&mut self, id: u32) {
+        self.source.remove_location(LocationId( id as i32) );
+    }
+
+    pub fn get_locations(& self) -> Vec<Location> {
+        self.source.get_locations()
     }
 }

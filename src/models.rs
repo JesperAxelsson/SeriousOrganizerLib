@@ -30,7 +30,7 @@ macro_rules! serialize_id {
 serialize_id!(LocationId, EntryId, LabelId);
 
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
+#[derive(Serialize, PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
 #[table_name = "locations"]
 pub struct Location {
     pub id: LocationId,
