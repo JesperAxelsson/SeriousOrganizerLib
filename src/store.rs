@@ -128,7 +128,7 @@ impl Store {
         self.labelLookupCache = lbl_map;
     }
 
-    pub fn update(&mut self, dir_entries: &Vec<DirEntry>) {
+    pub fn update(&mut self, dir_entries: &Vec<(LocationId, DirEntry)>) {
         use std::collections::HashMap;
         use std::collections::HashSet;
 
@@ -136,13 +136,8 @@ impl Store {
         let start = PreciseTime::now();
 
         let mut dir_hash = HashMap::with_capacity(dir_entries.len());
-        let mut file_hash = HashMap::with_capacity(dir_entries.len());
 
-        for dir in dir_entries.iter() {
-            for file in dir_entries.iter() {
-                file_hash.insert(&file.path, file);
-            }
-
+        for (location_id, dir) in dir_entries.iter() {
             dir_hash.insert(&dir.path, dir);
         }
 
@@ -258,9 +253,8 @@ impl Store {
 
         // Done!
         println!(
-            "Found {:?} dirs, {:?} files and {:?} collisions. Diff: {}",
+            "Found {:?} dirs and {:?} collisions. Diff: {}",
             dir_hash.len(),
-            file_hash.len(),
             collisions.len(),
             self.entriesCache.len()
         );

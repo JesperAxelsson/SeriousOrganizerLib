@@ -176,7 +176,7 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
     vec
 }
 
-pub fn get_all_data(paths: Vec<String>) -> Vec<DirEntry> {
+pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEntry)> {
     let mut vec = Vec::new();
 
     let start = PreciseTime::now();
@@ -187,13 +187,13 @@ pub fn get_all_data(paths: Vec<String>) -> Vec<DirEntry> {
         children.push(thread::spawn(move || {
             let start = PreciseTime::now();
 
-            let vec1 = list_files_in_dir(&p);
+            let vec1 = list_files_in_dir(&p.1).into_iter().map(|d| (p.0, d)).collect();
 
             let end = PreciseTime::now();
 
             println!(
                 "Path {:?} entries took: {:?} ms",
-                &p,
+                &p.1,
                 start.to(end).num_milliseconds()
             );
             vec1

@@ -112,7 +112,7 @@ impl Lens {
         lens
     }
 
-    pub fn update_data(&mut self, data: &mut Vec<DirEntry>) {
+    pub fn update_data(&mut self, data: &mut Vec<(LocationId, DirEntry)>) {
         println!("Starting data update");
 
         self.ix_list.clear();
@@ -316,7 +316,7 @@ impl Lens {
         self.source.remove_location(LocationId( id as i32) );
     }
 
-    pub fn get_locations(& self) -> Vec<Location> {
+    pub fn get_locations(&self) -> Vec<Location> {
         self.source.get_locations()
     }
 }
