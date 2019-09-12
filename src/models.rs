@@ -42,6 +42,7 @@ pub struct Location {
 #[derive(Serialize, Debug)]
 pub struct DirEntry {
     pub name: String,
+    pub location_id: LocationId,
     pub path: String,
     pub files: Vec<FileEntry>,
     pub size: u64,
@@ -58,6 +59,7 @@ pub struct FileEntry {
 #[table_name = "entries"]
 pub struct Entry {
     pub id: EntryId,
+    pub location_id: LocationId,
     pub name: String,
     pub path: String,
     pub size: i64,
@@ -81,15 +83,7 @@ pub struct Label {
 }
 
 #[derive(Queryable, Debug)]
-//#[table_name = "entry2labels"]
 pub struct Entry2Label {
     pub entry_id: EntryId,
     pub label_id: LabelId,
-}
-
-#[derive(Queryable, Debug)]
-//#[table_name = "entry2labels"]
-pub struct Location2Entry {
-    pub location_id: LocationId,
-    pub entry_id: EntryId,
 }

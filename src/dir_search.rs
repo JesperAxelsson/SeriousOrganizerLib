@@ -69,7 +69,7 @@ impl DirEntry {
 //    vec
 //}
 
-pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
+pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
     // println!("Starting glob: {:?}", path);
 
     let mut vec: Vec<DirEntry> = Vec::new();
@@ -82,7 +82,7 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
     }
 
     let sized = |files: &Vec<FileEntry>| {
-        let mut size = 0;
+        let mut size: u64 = 0;
         for f in files.iter() {
             size += f.size;
         }
@@ -105,6 +105,7 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
                     }];
 
                     let e = DirEntry {
+                        location_id,
                         name: path.file_name().unwrap().to_str().unwrap().to_string(),
                         path: path.to_str().unwrap().to_string(),
                         files: ff,
@@ -161,6 +162,7 @@ pub fn list_files_in_dir(path: &str) -> Vec<DirEntry> {
                     // let name = shared_path(&path, len);
 
                     let e = DirEntry {
+                        location_id,
                         name: name,
                         path: path,
                         files: files,
@@ -187,7 +189,7 @@ pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEnt
         children.push(thread::spawn(move || {
             let start = PreciseTime::now();
 
-            let vec1 = list_files_in_dir(&p.1).into_iter().map(|d| (p.0, d)).collect();
+            let vec1 = list_files_in_dir(p.0, &p.1).into_iter().map(|d| (p.0, d)).collect();
 
             let end = PreciseTime::now();
 

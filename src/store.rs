@@ -172,6 +172,7 @@ impl Store {
             if !collisions.contains(key.clone()) {
                 //                println!("Insert entry: {}", key);
                 insert_query.push((
+                    e::location_id.eq(value.location_id),
                     e::name.eq(&value.name),
                     e::path.eq(&value.path),
                     e::size.eq(value.size as i64),
