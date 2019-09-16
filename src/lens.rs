@@ -1,5 +1,6 @@
 // mod filter;
 // extern crate intmap;
+use log::{trace,info,warn,error,debug};
 
 use num_derive::{FromPrimitive, ToPrimitive};
 
@@ -113,12 +114,12 @@ impl Lens {
     }
 
     pub fn update_data(&mut self, data: &mut Vec<(LocationId, DirEntry)>) {
-        println!("Starting data update");
+        trace!("Starting data update");
 
         self.ix_list.clear();
         self.source.update(data);
 
-        println!("Data updated");
+        trace!("Data updated");
 
         self.update_ix_list();
     }
@@ -142,14 +143,14 @@ impl Lens {
 
         let end = PreciseTime::now();
 
-        println!(
+        info!(
             "ix_list update with {:?} entries took: {:?} ms",
             self.ix_list.len(),
             start.to(end).num_milliseconds(),
         );
 
-        println!("ix_list include: {:?}  ", self.include_labels);
-        println!("ix_list exclude: {:?}  ", self.exlude_labels);
+        trace!("ix_list include: {:?}  ", self.include_labels);
+        trace!("ix_list exclude: {:?}  ", self.exlude_labels);
     }
 
     fn label_filter(&self, entry_id: EntryId) -> bool {
@@ -301,7 +302,7 @@ impl Lens {
 
         let end = PreciseTime::now();
 
-        println!(
+        trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
             count,
             start.to(end).num_milliseconds());

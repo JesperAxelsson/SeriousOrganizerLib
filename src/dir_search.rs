@@ -1,3 +1,4 @@
+use log::{trace,info,warn,error};
 use std::cmp::Ordering;
 use std::fs;
 use std::mem;
@@ -46,38 +47,15 @@ impl DirEntry {
     }
 }
 
-//pub fn list_files_in_dir2(path: &str) -> Vec<DirEntry> {
-//    // println!("Starting glob: {:?}", path);
-//
-//    let mut vec: Vec<DirEntry> = Vec::new();
-//
-//    let path = PathBuf::from(path);
-//
-//    if !path.exists() {
-//        println!("Sorry path: {:?} does not exits", path);
-//        return vec;
-//    }
-//
-//    let sized = |files: &Vec<FileEntry>| {
-//        let mut size = 0;
-//        for f in files.iter() {
-//            size += f.size;
-//        }
-//        size
-//    };
-//
-//    vec
-//}
-
 pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
-    // println!("Starting glob: {:?}", path);
+     trace!("Starting glob: {:?}", path);
 
     let mut vec: Vec<DirEntry> = Vec::new();
 
     let path = PathBuf::from(path);
 
     if !path.exists() {
-        println!("Sorry path: {:?} does not exits", path);
+        info!("Sorry path: {:?} does not exits", path);
         return vec;
     }
 
@@ -119,15 +97,15 @@ pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
                 if meta.is_dir() {
                     let mut files = Vec::new();
 
-                    // println!("***");
+                    trace!("***");
 
                     ScanDir::files()
                         .walk(&path, |iter| {
                             for (entry, name) in iter {
-                                // println!("File {:?} has full path {:?}", name, entry.path());
+                                trace!("File {:?} has full path {:?}", name, entry.path());
                                 let dir = entry.path();
 
-                                // println!("File: {:?}", &dir);
+                                trace!("File: {:?}", &dir);
 
                                 let dir_path = dir.to_str().expect("Failed to read path");
 
@@ -193,7 +171,7 @@ pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEnt
 
             let end = PreciseTime::now();
 
-            println!(
+            info!(
                 "Path {:?} entries took: {:?} ms",
                 &p.1,
                 start.to(end).num_milliseconds()
@@ -210,7 +188,7 @@ pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEnt
 
     let end = PreciseTime::now();
 
-    println!(
+    info!(
         "Got {:?} entries took: {:?} ms",
         vec.len(),
         start.to(end).num_milliseconds()

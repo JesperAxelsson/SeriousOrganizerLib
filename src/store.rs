@@ -2,6 +2,8 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
+use log::{trace,info,warn,error,debug};
+
 use diesel;
 use diesel::prelude::*;
 
@@ -92,7 +94,7 @@ impl Store {
             self.filesCache.insert(entry.id, Vec::new());
         }
 
-        println!("Got {} files in filecache", self.filesCache.len());
+        debug!("Got {} files in filecache", self.filesCache.len());
 
         for file in files {
             let files = self.filesCache.get_mut(&file.entry_id).expect(&format!(
@@ -102,7 +104,7 @@ impl Store {
             files.push(file);
         }
 
-        println!("Now got files for entries {}", self.filesCache.len());
+        debug!("Now got files for entries {}", self.filesCache.len());
     }
 
     fn load_labels(&mut self, connection: &SqliteConnection) {
@@ -132,7 +134,7 @@ impl Store {
         use std::collections::HashMap;
         use std::collections::HashSet;
 
-        println!("Starting update");
+        debug!("Starting update");
         let start = PreciseTime::now();
 
         let mut dir_hash = HashMap::with_capacity(dir_entries.len());
@@ -150,7 +152,7 @@ impl Store {
                 collisions.insert(entry.path.clone());
                 let new_size = dir_entry.size as i64;
                 if entry.size != new_size {
-                    //                    println!("Update entry: {} {}", entry.path, entry.name);
+                   // trace!("Update entry: {} {}", entry.path, entry.name);
                     diesel::update(entry)
                         .set(e::size.eq(new_size))
                         .execute(&connection)
@@ -158,7 +160,7 @@ impl Store {
                 }
             } else {
                 // Delete entries not in entries
-                //                println!("Delete entry: {} {}", entry.path, entry.name);
+                //                trace!("Delete entry: {} {}", entry.path, entry.name);
                 diesel::delete(e::entries.filter(e::id.eq(entry.id)))
                     .execute(&connection)
                     .expect("Failed to delete entry");
@@ -170,7 +172,7 @@ impl Store {
         for (key, value) in dir_hash.iter() {
             // Insert
             if !collisions.contains(key.clone()) {
-                //                println!("Insert entry: {}", key);
+                //                tracec!("Insert entry: {}", key);
                 insert_query.push((
                     e::location_id.eq(value.location_id),
                     e::name.eq(&value.name),
@@ -188,7 +190,7 @@ impl Store {
         // Reload entries cache
         self.entriesCache = e::entries.load(&connection).expect("Failed to load entries");
 
-        //        println!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
+        //        debug!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
 
         // *** Start files updates ***
         let mut insert_query = Vec::new();
@@ -215,7 +217,7 @@ impl Store {
                         // File exists, check for diffs
                         let new_size = oldFile.size as i64;
                         if file.size != new_size {
-                            //                            println!("Update file: {}", oldFile.path);
+                            trace!("Update file: {}", oldFile.path);
                             diesel::update(file)
                                 .set(f::size.eq(new_size))
                                 .execute(&connection)
@@ -223,7 +225,7 @@ impl Store {
                         }
                     } else {
                         // File were removed
-                        //                        println!("Delete file: {}", entry.path);
+                        trace!("Delete file: {}", entry.path);
                         diesel::delete(f::files.filter(f::id.eq(file.id)))
                             .execute(&connection)
                             .expect("Failed to delete entry");
@@ -234,7 +236,7 @@ impl Store {
             // Entry is new, insert all files
             for file in dir.files.iter() {
                 if !file_lookup.contains(&file.path) {
-                    //                    println!("Insert file: {}", file.path);
+                                       trace!("Insert file: {}", file.path);
                     insert_query.push((
                         f::entry_id.eq(entry.id),
                         f::name.eq(&file.name),
@@ -253,7 +255,7 @@ impl Store {
         self.load_files(&connection);
 
         // Done!
-        println!(
+        info!(
             "Found {:?} dirs and {:?} collisions. Diff: {}",
             dir_hash.len(),
             collisions.len(),
@@ -261,7 +263,7 @@ impl Store {
         );
         let end = PreciseTime::now();
 
-        println!("Update took: {:?} ms", start.to(end).num_milliseconds());
+        info!("Update took: {:?} ms", start.to(end).num_milliseconds());
     }
 
     pub fn get_all_entries(&self) -> &Vec<Entry> {
@@ -298,10 +300,10 @@ impl Store {
                     .execute(&connection)?;
             }
 
-            println!("Labels deleted");
+            debug!("Labels deleted");
 
 
-            println!("Add labels");
+            debug!("Add labels");
 
             for slice in insert_query.iter().collect::<Vec<_>>().chunks(5000) {
                 diesel::insert_into(e2l::entry2labels)
@@ -312,7 +314,7 @@ impl Store {
             Ok(())
         }).expect("Failed to set_entry_labels");
 
-        println!("All labels done");
+        debug!("All labels done");
         self.load_labels(&connection);
     }
 
