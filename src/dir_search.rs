@@ -1,4 +1,4 @@
-use log::{trace,info,warn,error};
+use log::{error, info, trace, warn};
 use std::cmp::Ordering;
 use std::fs;
 use std::mem;
@@ -48,7 +48,7 @@ impl DirEntry {
 }
 
 pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
-     trace!("Starting glob: {:?}", path);
+    trace!("Starting glob: {:?}", path);
 
     let mut vec: Vec<DirEntry> = Vec::new();
 

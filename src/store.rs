@@ -2,7 +2,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
-use log::{trace,info,warn,error,debug};
+use log::{debug, error, info, trace, warn};
 
 use diesel;
 use diesel::prelude::*;
@@ -16,7 +16,6 @@ use crate::schema::entry2labels::dsl as e2l;
 use crate::schema::files::dsl as f;
 use crate::schema::labels::dsl as l;
 use crate::schema::locations::dsl as loc;
-
 
 use std::collections::{HashMap, HashSet};
 
@@ -34,17 +33,15 @@ pub struct Store {
     entryLabelLookup: HashMap<EntryId, HashSet<LabelId>>,
 }
 
-
 impl Store {
     pub fn init(db_url: &str) -> Store {
-        use std::path::Path;
         use std::fs::File;
+        use std::path::Path;
 
         let db_path = Path::new(db_url);
         if !db_path.exists() {
             File::create(db_path).expect(&format!("Failed to create db_file: {:?}", db_path));
         }
-
 
         let store = Store {
             db_url: db_url.to_string(),
@@ -57,14 +54,12 @@ impl Store {
 
         let connection = store.establish_connection();
 
-
         // By default the output is thrown out. If you want to redirect it to stdout, you
         // should call embedded_migrations::run_with_output.
         embedded_migrations::run_with_output(&connection, &mut std::io::stdout()).expect("Migrations Failed!");
 
         store
     }
-
 
     pub fn establish_connection(&self) -> SqliteConnection {
         let connection = SqliteConnection::establish(&self.db_url).expect("Failed to establish connection to sqlite");
@@ -152,7 +147,7 @@ impl Store {
                 collisions.insert(entry.path.clone());
                 let new_size = dir_entry.size as i64;
                 if entry.size != new_size {
-                   // trace!("Update entry: {} {}", entry.path, entry.name);
+                    // trace!("Update entry: {} {}", entry.path, entry.name);
                     diesel::update(entry)
                         .set(e::size.eq(new_size))
                         .execute(&connection)
@@ -236,7 +231,7 @@ impl Store {
             // Entry is new, insert all files
             for file in dir.files.iter() {
                 if !file_lookup.contains(&file.path) {
-                                       trace!("Insert file: {}", file.path);
+                    trace!("Insert file: {}", file.path);
                     insert_query.push((
                         f::entry_id.eq(entry.id),
                         f::name.eq(&file.name),
@@ -281,38 +276,34 @@ impl Store {
         let mut insert_query = Vec::with_capacity(entry_ids.len() * label_ids.len());
 
         for entry_id in entry_ids.iter() {
-
             // Add new labels
             for label_id in label_ids.iter() {
-                insert_query.push((
-                    e2l::entry_id.eq(entry_id),
-                    e2l::label_id.eq(label_id),
-                ));
+                insert_query.push((e2l::entry_id.eq(entry_id), e2l::label_id.eq(label_id)));
             }
         }
 
         let connection = self.establish_connection();
-        connection.transaction::<_, Error, _>(|| {
+        connection
+            .transaction::<_, Error, _>(|| {
+                // Remove labels not set
+                for slice in entry_ids.iter().collect::<Vec<_>>().chunks(500) {
+                    diesel::delete(e2l::entry2labels.filter(e2l::entry_id.eq_any(slice.to_vec())))
+                        .execute(&connection)?;
+                }
 
-            // Remove labels not set
-            for slice in entry_ids.iter().collect::<Vec<_>>().chunks(500) {
-                diesel::delete(e2l::entry2labels.filter(e2l::entry_id.eq_any(slice.to_vec())))
-                    .execute(&connection)?;
-            }
+                debug!("Labels deleted");
 
-            debug!("Labels deleted");
+                debug!("Add labels");
 
+                for slice in insert_query.iter().collect::<Vec<_>>().chunks(5000) {
+                    diesel::insert_into(e2l::entry2labels)
+                        .values(slice.to_vec())
+                        .execute(&connection)?;
+                }
 
-            debug!("Add labels");
-
-            for slice in insert_query.iter().collect::<Vec<_>>().chunks(5000) {
-                diesel::insert_into(e2l::entry2labels)
-                    .values(slice.to_vec())
-                    .execute(&connection)?;
-            }
-
-            Ok(())
-        }).expect("Failed to set_entry_labels");
+                Ok(())
+            })
+            .expect("Failed to set_entry_labels");
 
         debug!("All labels done");
         self.load_labels(&connection);
@@ -333,7 +324,6 @@ impl Store {
 
         return labels;
     }
-
 
     pub fn has_label(&self, entry_id: EntryId, label_id: LabelId) -> bool {
         if let Some(entries) = self.labelLookupCache.get(&label_id) {
@@ -363,7 +353,8 @@ impl Store {
         let connection = self.establish_connection();
 
         diesel::delete(l::labels.filter(l::id.eq(id)))
-            .execute(&connection).expect("Failed to delete label");
+            .execute(&connection)
+            .expect("Failed to delete label");
 
         self.labelsCache = l::labels.load(&connection).expect("Failed to load labels");
         self.load_labels(&connection);
@@ -374,7 +365,7 @@ impl Store {
     }
 
     /*** Locations ***/
-    pub fn add_location(&mut self, name: &str,  path: &str) {
+    pub fn add_location(&mut self, name: &str, path: &str) {
         let connection = self.establish_connection();
         diesel::insert_into(loc::locations)
             .values((loc::name.eq(name), loc::path.eq(path), loc::size.eq(0)))
@@ -386,7 +377,8 @@ impl Store {
         let connection = self.establish_connection();
 
         diesel::delete(loc::locations.filter(loc::id.eq(id)))
-            .execute(&connection).expect("Failed to delete location");
+            .execute(&connection)
+            .expect("Failed to delete location");
     }
 
     pub fn get_locations(&self) -> Vec<Location> {

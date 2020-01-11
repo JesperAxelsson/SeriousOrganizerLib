@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 #![allow(proc_macro_derive_resolution_fallback)]
 
-
 //extern crate walkdir;
 //extern crate rusqlite;
 
@@ -9,7 +8,6 @@
 extern crate serde_derive;
 
 extern crate num_derive;
-
 
 #[macro_use]
 extern crate diesel;

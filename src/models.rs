@@ -3,7 +3,6 @@
 use crate::schema::*;
 use serde::ser::{Serialize, Serializer};
 
-
 #[derive(PartialEq, Eq, PartialOrd, Ord, DieselNewType, Debug, Copy, Clone, Hash)]
 pub struct LocationId(pub i32);
 
@@ -22,13 +21,12 @@ macro_rules! serialize_id {
             {
                 let $t(id) = *self;
                 serializer.serialize_i32(id)
-            }   
+            }
         })*
     )
 }
 
 serialize_id!(LocationId, EntryId, LabelId);
-
 
 #[derive(Serialize, PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
 #[table_name = "locations"]

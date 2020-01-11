@@ -1,6 +1,6 @@
 // mod filter;
 // extern crate intmap;
-use log::{trace,info,warn,error,debug};
+use log::{debug, error, info, trace, warn};
 
 use num_derive::{FromPrimitive, ToPrimitive};
 
@@ -12,9 +12,8 @@ use std::collections::HashSet;
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use crate::models::{DirEntry, Entry, EntryId, File, Label, LabelId, LocationId, Location};
+use crate::models::{DirEntry, Entry, EntryId, File, Label, LabelId, Location, LocationId};
 use crate::store::Store;
-
 
 pub fn create_match_regex(needle: &str) -> Regex {
     let mut res: String = String::new();
@@ -59,7 +58,6 @@ impl Sort {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
 #[repr(u32)]
 pub enum SortColumn {
@@ -75,7 +73,6 @@ pub enum SortOrder {
     Asc = 0,
     Desc = 1,
 }
-
 
 // ************** Constant HWNDS **************
 
@@ -96,7 +93,9 @@ impl Lens {
             regex: Regex::new(".*").unwrap(),
         };
 
-        let mut source = Store::init("test.sqlite3");
+        let db_path = ::std::env::current_exe().unwrap().with_file_name("test.sqlite3");
+
+        let mut source = Store::init(db_path.to_str().unwrap());
         source.load_from_store();
 
         let mut lens = Lens {
@@ -154,14 +153,24 @@ impl Lens {
     }
 
     fn label_filter(&self, entry_id: EntryId) -> bool {
-        if self.exlude_labels.is_empty() && self.include_labels.is_empty() { return true; }
+        if self.exlude_labels.is_empty() && self.include_labels.is_empty() {
+            return true;
+        }
 
         if let Some(entry_labels) = self.source.entry_labels(entry_id) {
-            if self.exlude_labels.iter().any(|lbl| entry_labels.contains(&LabelId(*lbl))) {
+            if self
+                .exlude_labels
+                .iter()
+                .any(|lbl| entry_labels.contains(&LabelId(*lbl)))
+            {
                 return false;
             }
 
-            if self.include_labels.iter().any(|lbl| entry_labels.contains(&LabelId(*lbl))) {
+            if self
+                .include_labels
+                .iter()
+                .any(|lbl| entry_labels.contains(&LabelId(*lbl)))
+            {
                 return true;
             }
         }
@@ -173,12 +182,10 @@ impl Lens {
         }
     }
 
-    pub fn order_by(&mut self, column: SortColumn, order: SortOrder)
-    {
+    pub fn order_by(&mut self, column: SortColumn, order: SortOrder) {
         self.sort = Sort::new(column, order);
         self.sort();
     }
-
 
     pub fn sort(&mut self) {
         let column = &self.sort.column;
@@ -283,38 +290,47 @@ impl Lens {
         self.update_ix_list();
     }
 
-    pub fn add_label(&mut self, name: &str) { self.source.add_label(name); }
+    pub fn add_label(&mut self, name: &str) {
+        self.source.add_label(name);
+    }
 
     pub fn remove_label(&mut self, label_id: u32) {
         self.source.remove_label(LabelId(label_id as i32));
         self.remove_label_filter(label_id);
     }
 
-    pub fn get_labels(&self) -> &Vec<Label> { self.source.get_all_labels() }
+    pub fn get_labels(&self) -> &Vec<Label> {
+        self.source.get_all_labels()
+    }
 
-    pub fn entry_labels(&self, id: u32) -> Vec<LabelId> { self.source.dir_labels(EntryId(id as i32)) }
+    pub fn entry_labels(&self, id: u32) -> Vec<LabelId> {
+        self.source.dir_labels(EntryId(id as i32))
+    }
 
     pub fn set_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
         let start = PreciseTime::now();
         let count = entries.len();
-        self.source.set_entry_labels(entries.into_iter().map(|e| EntryId(e as i32)).collect(),
-                                     labels.into_iter().map(|l| LabelId(l as i32)).collect());
+        self.source.set_entry_labels(
+            entries.into_iter().map(|e| EntryId(e as i32)).collect(),
+            labels.into_iter().map(|l| LabelId(l as i32)).collect(),
+        );
 
         let end = PreciseTime::now();
 
         trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
             count,
-            start.to(end).num_milliseconds());
+            start.to(end).num_milliseconds()
+        );
     }
 
-        /*** Locations ***/
-    pub fn add_location(&mut self, name: &str,  path: &str) {
+    /*** Locations ***/
+    pub fn add_location(&mut self, name: &str, path: &str) {
         self.source.add_location(name, path);
     }
 
     pub fn remove_location(&mut self, id: u32) {
-        self.source.remove_location(LocationId( id as i32) );
+        self.source.remove_location(LocationId(id as i32));
     }
 
     pub fn get_locations(&self) -> Vec<Location> {
