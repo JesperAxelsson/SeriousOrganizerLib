@@ -77,15 +77,15 @@ pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
                 // *** Handle file ***
                 if meta.is_file() {
                     let ff = vec![FileEntry {
-                        name: path.file_name().unwrap().to_str().unwrap().to_string(),
-                        path: path.to_str().unwrap().to_string(),
+                        name: path.file_name().expect("Failed to read filename").to_str().expect("Failed to convert filename to rust string").to_string(),
+                        path: path.to_str().expect("Failed to convert filepath to rust string").to_string(),
                         size: meta.len(),
                     }];
 
                     let e = DirEntry {
                         location_id,
-                        name: path.file_name().unwrap().to_str().unwrap().to_string(),
-                        path: path.to_str().unwrap().to_string(),
+                        name: path.file_name().expect("Failed to read dirname").to_str().expect("Failed to convert dirname to rust string").to_string(),
+                        path: path.to_str().expect("Failed to convert dirpath to rust string").to_string(),
                         files: ff,
                         size: meta.len(),
                     };
@@ -109,8 +109,8 @@ pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
 
                                 let dir_path = dir.to_str().expect("Failed to read path");
 
-                                let size = if dir.to_str().unwrap().len() >= 260 {
-                                    let strr = "\\??\\".to_owned() + dir.to_str().unwrap();
+                                let size = if dir_path.len() >= 260 {
+                                    let strr = "\\??\\".to_owned() + dir_path;
                                     fs::metadata(&strr).expect("failed to read metadata").len()
                                 } else {
                                     fs::metadata(&dir).expect("failed to read metadata").len()
@@ -127,15 +127,15 @@ pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
                                 });
                             }
                         })
-                        .unwrap();
+                        .expect("Failed to run ScanDir::Files()");
 
                     let size = sized(&files);
                     // files.shrink_to_fit();
 
                     // let len = path.file_name().unwrap().to_str().unwrap().len();
 
-                    let name = path.file_name().unwrap().to_str().unwrap().to_string();
-                    let path = path.to_str().unwrap().to_string();
+                    let name = path.file_name().expect("Failed to read dirname").to_str().expect("Failed to convert dirname to rust string").to_string();
+                    let path = path.to_str().expect("Failed to convert dirpath to rust string").to_string();
 
                     // let name = shared_path(&path, len);
 
