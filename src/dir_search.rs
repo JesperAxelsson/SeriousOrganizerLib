@@ -107,22 +107,12 @@ pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
 
                                 trace!("File: {:?}", &dir);
 
-                                let dir_path = dir.to_str().expect("Failed to read path");
+                                let size = get_size(&dir);
 
-                                let size = if dir_path.len() >= 260 {
-                                    let strr = "\\??\\".to_owned() + dir_path;
-                                    fs::metadata(&strr).expect("failed to read metadata").len()
-                                } else {
-                                    fs::metadata(&dir).expect("failed to read metadata").len()
-                                };
-
-                                let dir = dir_path.to_string();
                                 // let name = shared_path(&dir, name.len());;
                                 files.push(FileEntry {
-                                    // name: String::from(name),
                                     name: name,
-                                    // path: String::from(dir_path),
-                                    path: dir,
+                                    path: dir.to_string_lossy().into(),
                                     size: size,
                                 });
                             }
@@ -155,6 +145,22 @@ pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
 
     vec
 }
+
+fn get_size(dir_path: &PathBuf) -> u64 {
+    if cfg!(windows) {
+        let dir_path = dir_path.to_str().expect("Failed to read path");
+
+        if dir_path.len() >= 260 {
+            let strr = "\\??\\".to_owned() + dir_path;
+            fs::metadata(&strr).expect("failed to read metadata").len()
+        } else {
+            fs::metadata(&dir_path).expect("failed to read metadata").len()
+        }     
+    } else {
+        fs::metadata(&dir_path).expect("failed to read metadata").len()
+    }
+}
+
 
 pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEntry)> {
     let mut vec = Vec::new();
