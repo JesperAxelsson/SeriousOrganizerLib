@@ -23,6 +23,13 @@ macro_rules! serialize_id {
                 serializer.serialize_i32(id)
             }
         })*
+
+        $(impl Into<i32> for $t {
+            fn into(self) -> i32 {
+                let $t(id) = self;
+                id
+            }
+        })*
     )
 }
 
