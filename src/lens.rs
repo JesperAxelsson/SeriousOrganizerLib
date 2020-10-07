@@ -333,6 +333,10 @@ impl Lens {
         self.source.remove_location(LocationId(id as i32));
     }
 
+    pub fn remove_location_id(&mut self, id: LocationId) {
+        self.source.remove_location(id);
+    }
+
     pub fn get_locations(&self) -> Vec<Location> {
         self.source.get_locations()
     }
