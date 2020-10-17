@@ -336,11 +336,21 @@ impl Lens {
         self.label_states.clear();
 
         for lbl in labels {
+            let LabelId(id) = lbl.id;
+
+            let lbl_state = if self.include_labels.contains(&id) {
+                LabelState::Include
+            } else if self.exlude_labels.contains(&id) {
+                LabelState::Exclude
+            } else {
+                LabelState::Unset
+            };
+
             self.label_states.push(Label {
                 id: lbl.id.clone(),
                 name: lbl.name.clone(),
-                state: LabelState::Unset,
-            })
+                state: lbl_state,
+            });
         }
     }
 
