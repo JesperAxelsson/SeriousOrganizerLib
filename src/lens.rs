@@ -12,8 +12,20 @@ use std::collections::HashSet;
 //use std::cmp::Ordering;
 
 //use intmap::IntMap;
-use crate::models::{DirEntry, Entry, EntryId, File, Label, LabelId, Location, LocationId};
+use crate::models::{DirEntry, Entry, EntryId, File, LabelId, Location, LocationId};
 use crate::store::Store;
+
+pub enum LabelState {
+    Unset,
+    Exclude,
+    Include,
+}
+
+pub struct Label {
+    pub id: LabelId,
+    pub name: String,
+    pub state: LabelState,
+}
 
 pub fn create_match_regex(needle: &str) -> Regex {
     let mut res: String = String::new();
@@ -82,6 +94,9 @@ pub struct Lens {
     include_labels: HashSet<i32>,
     exlude_labels: HashSet<i32>,
 
+    /// Used for application using Lens
+    label_states: Vec<Label>,
+
     search: Search,
     sort: Sort,
 }
@@ -93,7 +108,9 @@ impl Lens {
             regex: Regex::new(".*").unwrap(),
         };
 
-        let db_path = ::std::env::current_exe().unwrap().with_file_name("test.sqlite3");
+        let db_path = ::std::env::current_exe()
+            .unwrap()
+            .with_file_name("test.sqlite3");
 
         let mut source = Store::init(db_path.to_str().unwrap());
         source.load_from_store();
@@ -106,6 +123,8 @@ impl Lens {
 
             include_labels: HashSet::new(),
             exlude_labels: HashSet::new(),
+
+            label_states: Vec::new(),
         };
         lens.update_ix_list();
 
@@ -139,7 +158,6 @@ impl Lens {
         }
 
         self.sort();
-
 
         info!(
             "ix_list update with {:?} entries took: {:?} ms",
@@ -226,16 +244,15 @@ impl Lens {
         None
     }
 
+    // *** Entries ***
+
+    pub fn get_dir_count(&self) -> usize {
+        self.ix_list.len()
+    }
+
     pub fn get_dir_entry(&self, ix: usize) -> Option<&Entry> {
         if let Some(cix) = self.convert_ix(ix) {
             return self.source.entriesCache.get(cix);
-        }
-        None
-    }
-
-    pub fn get_dir_files(&self, ix: usize) -> Option<&Vec<File>> {
-        if let Some(entry) = self.get_dir_entry(ix) {
-            return self.source.get_files(entry);
         }
         None
     }
@@ -248,8 +265,13 @@ impl Lens {
         }
     }
 
-    pub fn get_dir_count(&self) -> usize {
-        self.ix_list.len()
+    // *** Files ***
+
+    pub fn get_dir_files(&self, ix: usize) -> Option<&Vec<File>> {
+        if let Some(entry) = self.get_dir_entry(ix) {
+            return self.source.get_files(entry);
+        }
+        None
     }
 
     pub fn get_file_count(&self, ix: usize) -> Option<usize> {
@@ -267,12 +289,15 @@ impl Lens {
         None
     }
 
+    // *** Labels ***
+
     pub fn add_inlude_label(&mut self, label_id: u32) {
         let label_id = label_id as i32;
         self.exlude_labels.remove(&label_id);
         self.include_labels.insert(label_id);
 
         self.update_ix_list();
+        self.update_label_states();
     }
 
     pub fn add_exclude_label(&mut self, label_id: u32) {
@@ -280,6 +305,8 @@ impl Lens {
         self.include_labels.remove(&label_id);
         self.exlude_labels.insert(label_id);
         self.update_ix_list();
+
+        self.update_label_states();
     }
 
     pub fn remove_label_filter(&mut self, label_id: u32) {
@@ -287,19 +314,38 @@ impl Lens {
         self.exlude_labels.remove(&label_id);
         self.include_labels.remove(&label_id);
         self.update_ix_list();
+
+        self.update_label_states();
     }
 
     pub fn add_label(&mut self, name: &str) {
         self.source.add_label(name);
+
+        self.update_label_states();
     }
 
     pub fn remove_label(&mut self, label_id: u32) {
         self.source.remove_label(LabelId(label_id as i32));
         self.remove_label_filter(label_id);
+
+        self.update_label_states();
+    }
+
+    pub fn update_label_states(&mut self) {
+        let labels = self.source.get_all_labels();
+        self.label_states.clear();
+
+        for lbl in labels {
+            self.label_states.push(Label {
+                id: lbl.id.clone(),
+                name: lbl.name.clone(),
+                state: LabelState::Unset,
+            })
+        }
     }
 
     pub fn get_labels(&self) -> &Vec<Label> {
-        self.source.get_all_labels()
+        &self.label_states
     }
 
     pub fn entry_labels(&self, id: u32) -> Vec<LabelId> {
@@ -317,14 +363,8 @@ impl Lens {
         trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
             count,
-           start.elapsed().whole_milliseconds()
+            start.elapsed().whole_milliseconds()
         );
-
-        // trace!(
-        //     "set_entry_labels update with {:?} entries took: {:?} ms",
-        //     count,
-        //     start.to(end).num_milliseconds()
-        // );
     }
 
     /*** Locations ***/
