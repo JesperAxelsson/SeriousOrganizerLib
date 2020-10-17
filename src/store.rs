@@ -19,7 +19,7 @@ use crate::schema::locations::dsl as loc;
 
 use std::collections::{HashMap, HashSet};
 
-use time::PreciseTime;
+use time::Instant;
 //use schema::*;
 
 embed_migrations!();
@@ -130,7 +130,7 @@ impl Store {
         use std::collections::HashSet;
 
         debug!("Starting update");
-        let start = PreciseTime::now();
+        let start = Instant::now();
 
         let mut dir_hash = HashMap::with_capacity(dir_entries.len());
 
@@ -256,9 +256,8 @@ impl Store {
             collisions.len(),
             self.entriesCache.len()
         );
-        let end = PreciseTime::now();
 
-        info!("Update took: {:?} ms", start.to(end).num_milliseconds());
+        info!("Update took: {:?} ms", start.elapsed().whole_milliseconds());
     }
 
     pub fn get_all_entries(&self) -> &Vec<Entry> {

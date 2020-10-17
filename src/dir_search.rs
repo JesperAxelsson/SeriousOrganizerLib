@@ -5,7 +5,7 @@ use std::mem;
 use std::path::PathBuf;
 use std::thread;
 
-use time::PreciseTime;
+use time::Instant;
 
 use crate::models::*;
 use scan_dir::ScanDir;
@@ -165,22 +165,20 @@ fn get_size(dir_path: &PathBuf) -> u64 {
 pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEntry)> {
     let mut vec = Vec::new();
 
-    let start = PreciseTime::now();
+    let start =Instant::now();
 
     let mut children = Vec::new();
 
     for p in paths {
         children.push(thread::spawn(move || {
-            let start = PreciseTime::now();
+            let start = Instant::now();
 
             let vec1 = list_files_in_dir(p.0, &p.1).into_iter().map(|d| (p.0, d)).collect();
-
-            let end = PreciseTime::now();
 
             info!(
                 "Path {:?} entries took: {:?} ms",
                 &p.1,
-                start.to(end).num_milliseconds()
+                start.elapsed().whole_milliseconds()
             );
             vec1
         }))
@@ -192,12 +190,11 @@ pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEnt
 
     vec.sort();
 
-    let end = PreciseTime::now();
 
     info!(
         "Got {:?} entries took: {:?} ms",
         vec.len(),
-        start.to(end).num_milliseconds()
+        start.elapsed().whole_milliseconds()
     );
 
     vec

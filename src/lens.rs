@@ -5,7 +5,7 @@ use log::{debug, error, info, trace, warn};
 use num_derive::{FromPrimitive, ToPrimitive};
 
 use regex::{escape, Regex, RegexBuilder};
-use time::PreciseTime;
+use time::Instant;
 
 use std::collections::HashSet;
 //use std::mem;
@@ -124,7 +124,7 @@ impl Lens {
     }
 
     pub fn update_ix_list(&mut self) {
-        let start = PreciseTime::now();
+        let start = Instant::now();
 
         self.ix_list.clear();
 
@@ -140,12 +140,11 @@ impl Lens {
 
         self.sort();
 
-        let end = PreciseTime::now();
 
         info!(
             "ix_list update with {:?} entries took: {:?} ms",
             self.ix_list.len(),
-            start.to(end).num_milliseconds(),
+            start.elapsed().whole_milliseconds()
         );
 
         trace!("ix_list include: {:?}  ", self.include_labels);
@@ -308,20 +307,24 @@ impl Lens {
     }
 
     pub fn set_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
-        let start = PreciseTime::now();
+        let start = Instant::now();
         let count = entries.len();
         self.source.set_entry_labels(
             entries.into_iter().map(|e| EntryId(e as i32)).collect(),
             labels.into_iter().map(|l| LabelId(l as i32)).collect(),
         );
 
-        let end = PreciseTime::now();
-
         trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
             count,
-            start.to(end).num_milliseconds()
+           start.elapsed().whole_milliseconds()
         );
+
+        // trace!(
+        //     "set_entry_labels update with {:?} entries took: {:?} ms",
+        //     count,
+        //     start.to(end).num_milliseconds()
+        // );
     }
 
     /*** Locations ***/
