@@ -56,13 +56,15 @@ impl Store {
 
         // By default the output is thrown out. If you want to redirect it to stdout, you
         // should call embedded_migrations::run_with_output.
-        embedded_migrations::run_with_output(&connection, &mut std::io::stdout()).expect("Migrations Failed!");
+        embedded_migrations::run_with_output(&connection, &mut std::io::stdout())
+            .expect("Migrations Failed!");
 
         store
     }
 
     pub fn establish_connection(&self) -> SqliteConnection {
-        let connection = SqliteConnection::establish(&self.db_url).expect("Failed to establish connection to sqlite");
+        let connection = SqliteConnection::establish(&self.db_url)
+            .expect("Failed to establish connection to sqlite");
 
         connection
             .execute("PRAGMA foreign_keys = ON")
@@ -183,7 +185,9 @@ impl Store {
             .expect("Failed to execute entry insert query");
 
         // Reload entries cache
-        self.entriesCache = e::entries.load(&connection).expect("Failed to load entries");
+        self.entriesCache = e::entries
+            .load(&connection)
+            .expect("Failed to load entries");
 
         //        debug!("Entries: {} dirs: {}", self.entriesCache.len(), dir_hash.len());
 
@@ -191,9 +195,10 @@ impl Store {
         let mut insert_query = Vec::new();
 
         for entry in self.entriesCache.iter() {
-            let dir = dir_hash
-                .get(&entry.path)
-                .expect(&format!("Failed to find dir when updating files: {}", entry.path));
+            let dir = dir_hash.get(&entry.path).expect(&format!(
+                "Failed to find dir when updating files: {}",
+                entry.path
+            ));
 
             let mut file_lookup = HashSet::new();
 
@@ -269,14 +274,23 @@ impl Store {
     }
 
     /*** Labels ***/
-    pub fn set_entry_labels(&mut self, entry_ids: Vec<EntryId>, label_ids: Vec<LabelId>) {
+    pub fn add_entry_labels(&mut self, entry_ids: Vec<EntryId>, label_ids: Vec<LabelId>) {
         use diesel::result::Error;
 
         let mut insert_query = Vec::with_capacity(entry_ids.len() * label_ids.len());
 
         for entry_id in entry_ids.iter() {
+            let map = self.entryLabelLookup.get(entry_id);
+
             // Add new labels
             for label_id in label_ids.iter() {
+                if let Some(map) = map {
+                    if map.contains(label_id) {
+                        // Already in db, skip
+                        continue;
+                    }
+                }
+
                 insert_query.push((e2l::entry_id.eq(entry_id), e2l::label_id.eq(label_id)));
             }
         }
@@ -284,14 +298,6 @@ impl Store {
         let connection = self.establish_connection();
         connection
             .transaction::<_, Error, _>(|| {
-                // Remove labels not set
-                for slice in entry_ids.iter().collect::<Vec<_>>().chunks(500) {
-                    diesel::delete(e2l::entry2labels.filter(e2l::entry_id.eq_any(slice.to_vec())))
-                        .execute(&connection)?;
-                }
-
-                debug!("Labels deleted");
-
                 debug!("Add labels");
 
                 for slice in insert_query.iter().collect::<Vec<_>>().chunks(5000) {
@@ -302,9 +308,39 @@ impl Store {
 
                 Ok(())
             })
-            .expect("Failed to set_entry_labels");
+            .expect("Failed to add_entry_labels");
 
-        debug!("All labels done");
+        debug!("add_entry_labels() All labels done");
+        self.load_labels(&connection);
+    }
+
+    pub fn remove_entry_labels(&mut self, entry_ids: Vec<EntryId>, label_ids: Vec<LabelId>) {
+        use diesel::result::Error;
+
+        let connection = self.establish_connection();
+        connection
+            .transaction::<_, Error, _>(|| {
+                // Remove labels not set
+                let mut foo = None;
+                for entry_id in entry_ids.iter() {
+                    foo = Some(diesel::delete(
+                        e2l::entry2labels
+                            .filter(e2l::entry_id.eq(entry_id))
+                            .filter(e2l::label_id.eq_any(&label_ids)),
+                    ));
+                }
+
+                if let Some(foo) = foo {
+                    foo.execute(&connection)?;
+                }
+
+                debug!("Labels deleted");
+
+                Ok(())
+            })
+            .expect("Failed to remvove_entry_label");
+
+        debug!("Label done");
         self.load_labels(&connection);
     }
 
@@ -383,7 +419,9 @@ impl Store {
     pub fn get_locations(&self) -> Vec<Location> {
         let connection = self.establish_connection();
 
-        let locations = loc::locations.load(&connection).expect("Failed to load locations");
+        let locations = loc::locations
+            .load(&connection)
+            .expect("Failed to load locations");
         return locations;
     }
 }

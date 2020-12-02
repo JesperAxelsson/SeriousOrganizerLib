@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 // mod filter;
 // extern crate intmap;
 use log::{debug, error, info, trace, warn};
@@ -362,10 +363,25 @@ impl Lens {
         self.source.dir_labels(EntryId(id as i32))
     }
 
-    pub fn set_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
+    pub fn add_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
         let start = Instant::now();
         let count = entries.len();
-        self.source.set_entry_labels(
+        self.source.add_entry_labels(
+            entries.into_iter().map(|e| EntryId(e as i32)).collect(),
+            labels.into_iter().map(|l| LabelId(l as i32)).collect(),
+        );
+
+        trace!(
+            "set_entry_labels update with {:?} entries took: {:?} ms",
+            count,
+            start.elapsed().whole_milliseconds()
+        );
+    }
+
+    pub fn remove_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
+        let start = Instant::now();
+        let count = entries.len();
+        self.source.remove_entry_labels(
             entries.into_iter().map(|e| EntryId(e as i32)).collect(),
             labels.into_iter().map(|l| LabelId(l as i32)).collect(),
         );

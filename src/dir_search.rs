@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use log::{error, info, trace, warn};
 use std::cmp::Ordering;
 use std::fs;
