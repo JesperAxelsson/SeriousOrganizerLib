@@ -35,7 +35,7 @@ macro_rules! serialize_id {
 
 serialize_id!(LocationId, EntryId, LabelId);
 
-#[derive(Serialize, PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
+#[derive(Serialize, PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset,Clone, Debug)]
 #[table_name = "locations"]
 pub struct Location {
     pub id: LocationId,
@@ -44,7 +44,7 @@ pub struct Location {
     pub size: i64,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct DirEntry {
     pub name: String,
     pub location_id: LocationId,
@@ -53,14 +53,14 @@ pub struct DirEntry {
     pub size: u64,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct FileEntry {
     pub name: String,
     pub path: String,
     pub size: u64,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Clone, Debug)]
 #[table_name = "entries"]
 pub struct Entry {
     pub id: EntryId,
@@ -70,7 +70,7 @@ pub struct Entry {
     pub size: i64,
 }
 
-#[derive(Identifiable, Queryable, AsChangeset, Debug)]
+#[derive(Identifiable, Queryable, AsChangeset, Clone, Debug)]
 #[table_name = "files"]
 pub struct File {
     pub id: i32,
@@ -80,14 +80,14 @@ pub struct File {
     pub size: i64,
 }
 
-#[derive(Serialize, Identifiable, Queryable, AsChangeset, Debug)]
+#[derive(Serialize, Identifiable, Queryable, AsChangeset, Clone, Debug)]
 #[table_name = "labels"]
 pub struct Label {
     pub id: LabelId,
     pub name: String,
 }
 
-#[derive(Queryable, Debug)]
+#[derive(Queryable, Clone, Debug)]
 pub struct Entry2Label {
     pub entry_id: EntryId,
     pub label_id: LabelId,
