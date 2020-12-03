@@ -87,7 +87,7 @@ pub struct Label {
     pub name: String,
 }
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Clone, Copy, Debug)]
 pub struct Entry2Label {
     pub entry_id: EntryId,
     pub label_id: LabelId,
