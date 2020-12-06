@@ -94,8 +94,8 @@ pub enum SortOrder {
 pub struct Lens {
     pub source: Store,
     pub ix_list: Vec<usize>,
-    include_labels: HashSet<i32>,
-    exlude_labels: HashSet<i32>,
+    include_labels: HashSet<LabelId>,
+    exlude_labels: HashSet<LabelId>,
 
     /// Used for application using Lens
     label_states: Vec<Label>,
