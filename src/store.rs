@@ -321,19 +321,15 @@ impl Store {
         connection
             .transaction::<_, Error, _>(|| {
                 // Remove labels not set
-                let mut foo = None;
                 for entry_id in entry_ids.iter() {
-                    foo = Some(diesel::delete(
+                    diesel::delete(
                         e2l::entry2labels
                             .filter(e2l::entry_id.eq(entry_id))
                             .filter(e2l::label_id.eq_any(&label_ids)),
-                    ));
+                    )
+                    .execute(&connection)?;
                 }
-
-                if let Some(foo) = foo {
-                    foo.execute(&connection)?;
-                }
-
+                println!("Removed labels!");
                 debug!("Labels deleted");
 
                 Ok(())

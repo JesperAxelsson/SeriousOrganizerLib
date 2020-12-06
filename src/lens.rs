@@ -16,12 +16,14 @@ use std::collections::HashSet;
 use crate::models::{DirEntry, Entry, EntryId, File, LabelId, Location, LocationId};
 use crate::store::Store;
 
+#[derive(Debug, Copy, Clone)]
 pub enum LabelState {
     Unset,
     Exclude,
     Include,
 }
 
+#[derive(Debug, Clone)]
 pub struct Label {
     pub id: LabelId,
     pub name: String,
@@ -179,7 +181,7 @@ impl Lens {
             if self
                 .exlude_labels
                 .iter()
-                .any(|lbl| entry_labels.contains(&LabelId(*lbl)))
+                .any(|lbl| entry_labels.contains(lbl))
             {
                 return false;
             }
@@ -187,7 +189,7 @@ impl Lens {
             if self
                 .include_labels
                 .iter()
-                .any(|lbl| entry_labels.contains(&LabelId(*lbl)))
+                .any(|lbl| entry_labels.contains(lbl))
             {
                 return true;
             }
@@ -258,7 +260,7 @@ impl Lens {
         None
     }
 
-    fn convert_ix(&self, ix: usize) -> Option<usize> {
+    pub fn convert_ix(&self, ix: usize) -> Option<usize> {
         if ix < self.ix_list.len() {
             Some(self.ix_list[ix])
         } else {
@@ -293,7 +295,7 @@ impl Lens {
     // *** Labels ***
 
     pub fn add_inlude_label(&mut self, label_id: u32) {
-        let label_id = label_id as i32;
+        let label_id = LabelId(label_id as i32);
         self.exlude_labels.remove(&label_id);
         self.include_labels.insert(label_id);
 
@@ -302,7 +304,7 @@ impl Lens {
     }
 
     pub fn add_exclude_label(&mut self, label_id: u32) {
-        let label_id = label_id as i32;
+        let label_id = LabelId(label_id as i32);
         self.include_labels.remove(&label_id);
         self.exlude_labels.insert(label_id);
         self.update_ix_list();
@@ -311,7 +313,7 @@ impl Lens {
     }
 
     pub fn remove_label_filter(&mut self, label_id: u32) {
-        let label_id = label_id as i32;
+        let label_id = LabelId(label_id as i32);
         self.exlude_labels.remove(&label_id);
         self.include_labels.remove(&label_id);
         self.update_ix_list();
@@ -337,11 +339,9 @@ impl Lens {
         self.label_states.clear();
 
         for lbl in labels {
-            let LabelId(id) = lbl.id;
-
-            let lbl_state = if self.include_labels.contains(&id) {
+            let lbl_state = if self.include_labels.contains(&lbl.id) {
                 LabelState::Include
-            } else if self.exlude_labels.contains(&id) {
+            } else if self.exlude_labels.contains(&lbl.id) {
                 LabelState::Exclude
             } else {
                 LabelState::Unset
