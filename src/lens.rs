@@ -63,8 +63,8 @@ struct Search {
 
 #[derive(Debug)]
 pub struct Sort {
-    column: SortColumn,
-    order: SortOrder,
+   pub column: SortColumn,
+   pub order: SortOrder,
 }
 
 impl Sort {
