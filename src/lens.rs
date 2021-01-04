@@ -73,7 +73,7 @@ impl Sort {
     }
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive, Eq, PartialEq)]
 #[repr(u32)]
 pub enum SortColumn {
     Name = 0,
@@ -82,7 +82,7 @@ pub enum SortColumn {
     Size = 3,
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive, Eq, PartialEq)]
 #[repr(u32)]
 pub enum SortOrder {
     Asc = 0,
