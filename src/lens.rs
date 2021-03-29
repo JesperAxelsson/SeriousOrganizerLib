@@ -61,7 +61,7 @@ struct Search {
     regex: Regex,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Sort {
    pub column: SortColumn,
    pub order: SortOrder,
