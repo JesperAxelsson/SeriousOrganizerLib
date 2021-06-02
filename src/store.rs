@@ -18,6 +18,7 @@ use crate::schema::labels::dsl as l;
 use crate::schema::locations::dsl as loc;
 
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 
 use time::Instant;
 //use schema::*;
@@ -419,5 +420,18 @@ impl Store {
             .load(&connection)
             .expect("Failed to load locations");
         return locations;
+    }
+
+    pub fn rename_entry(&mut self, entry: Entry, new_name: &str) {
+        let connection = self.establish_connection();
+
+        let path = Path::new(&entry.path);
+        let path = path.with_file_name(new_name);
+        let new_path = path.to_string_lossy();
+
+        diesel::update(&entry)
+            .set((e::name.eq(new_name), e::path.eq(new_path)))
+            .execute(&connection)
+            .expect("Failed to update name of entry");
     }
 }

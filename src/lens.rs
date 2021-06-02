@@ -9,8 +9,14 @@ use regex::{escape, Regex, RegexBuilder};
 use time::Instant;
 
 use std::collections::HashSet;
+use std::fs::rename;
+use std::path::Path;
+use std::usize;
 //use std::mem;
 //use std::cmp::Ordering;
+
+use std::fs;
+use std::fs::metadata;
 
 //use intmap::IntMap;
 use crate::models::{DirEntry, Entry, EntryId, File, LabelId, Location, LocationId};
@@ -63,8 +69,8 @@ struct Search {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Sort {
-   pub column: SortColumn,
-   pub order: SortOrder,
+    pub column: SortColumn,
+    pub order: SortOrder,
 }
 
 impl Sort {
@@ -408,5 +414,33 @@ impl Lens {
 
     pub fn get_locations(&self) -> Vec<Location> {
         self.source.get_locations()
+    }
+
+    /*** Rename ***/
+    pub fn rename_entry(&mut self, entry: Entry, new_name: &str) -> bool {
+        let new_meta = metadata(new_name);
+
+        if new_meta.is_ok() {
+            // Path already exists
+            return false;
+        }
+
+        let old_meta = metadata(&entry.path);
+
+        if old_meta.is_err() {
+            return false;
+        }
+        
+        let path = Path::new(&entry.path);
+        let new_path = path.with_file_name(new_name);
+
+        rename(&entry.path, new_path).expect("Failed to rename file");
+
+        self.source.rename_entry(entry, new_name);
+
+        self.source.load_from_store();
+        self.update_ix_list();
+
+        true
     }
 }
