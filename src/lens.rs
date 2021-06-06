@@ -9,6 +9,7 @@ use regex::{escape, Regex, RegexBuilder};
 use time::Instant;
 
 use std::collections::HashSet;
+use std::fs::create_dir_all;
 use std::fs::rename;
 use std::path::Path;
 use std::usize;
@@ -416,7 +417,7 @@ impl Lens {
         self.source.get_locations()
     }
 
-    /*** Rename ***/
+    /*** Entry Operations ***/
     pub fn rename_entry(&mut self, entry: Entry, new_name: &str) -> bool {
         let new_meta = metadata(new_name);
 
@@ -430,13 +431,49 @@ impl Lens {
         if old_meta.is_err() {
             return false;
         }
-        
+
         let path = Path::new(&entry.path);
         let new_path = path.with_file_name(new_name);
 
-        rename(&entry.path, new_path).expect("Failed to rename file");
+        rename(&entry.path, &new_path).expect("Failed to rename file");
 
-        self.source.rename_entry(entry, new_name);
+        self.source.rename_entry(entry, &new_path.to_string_lossy());
+
+        self.source.load_from_store();
+        self.update_ix_list();
+
+        true
+    }
+
+    /// Moves a entry that is a file to be a directory with the same name
+    pub fn move_file_entry_to_dir_entry(&mut self, entry: Entry) -> bool {
+        let old_meta = metadata(&entry.path);
+
+        if old_meta.is_err() {
+            return false;
+        }
+
+        let old_meta = old_meta.unwrap();
+
+        if old_meta.is_dir() {
+            return false;
+        }
+
+        let path = Path::new(&entry.path);
+        let file_name = path.file_name().unwrap();
+        let file_stem = path.file_stem().unwrap();
+
+        let mut new_path = path.parent().unwrap().to_path_buf();
+        new_path.push(file_stem);
+
+        create_dir_all(&new_path).expect("Failed to create dirs!");
+
+        new_path.push(file_name);
+
+        println!("Moving from {:?} to: {:?}", path, new_path);
+        rename(&entry.path, &new_path).expect("Failed to rename file");
+
+        self.source.rename_entry(entry, &new_path.to_string_lossy());
 
         self.source.load_from_store();
         self.update_ix_list();

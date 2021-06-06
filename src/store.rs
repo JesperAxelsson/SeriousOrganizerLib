@@ -422,13 +422,26 @@ impl Store {
         return locations;
     }
 
-    pub fn rename_entry(&mut self, entry: Entry, new_name: &str) {
+    pub fn rename_entry(&mut self, entry: Entry, new_path: &str) {
         let connection = self.establish_connection();
 
-        let path = Path::new(&entry.path);
-        let path = path.with_file_name(new_name);
-        let new_path = path.to_string_lossy();
+        let path = Path::new(&new_path);
+        let new_name = path.file_name().unwrap().to_str().unwrap();
 
+        // Update file
+        let file = self
+            .get_files(&entry)
+            .expect("Failed to find file when renaming entry")
+            .iter()
+            .next()
+            .expect("Failed to find file when renaming entry");
+
+        diesel::update(file)
+            .set(f::path.eq(new_path))
+            .execute(&connection)
+            .expect("Failed to update path of file");
+
+        // Update entry
         diesel::update(&entry)
             .set((e::name.eq(new_name), e::path.eq(new_path)))
             .execute(&connection)
