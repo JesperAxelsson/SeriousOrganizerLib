@@ -1,6 +1,8 @@
 #![allow(unused_imports)]
+use anyhow::Context;
 // mod filter;
 // extern crate intmap;
+use anyhow::{bail, Result};
 use log::{debug, error, info, trace, warn};
 
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -418,45 +420,45 @@ impl Lens {
     }
 
     /*** Entry Operations ***/
-    pub fn rename_entry(&mut self, entry: Entry, new_name: &str) -> bool {
+    pub fn rename_entry(&mut self, entry: Entry, new_name: &str) -> Result<()> {
         let new_meta = metadata(new_name);
 
         if new_meta.is_ok() {
             // Path already exists
-            return false;
+            bail!("This name already exists: '{:?}'", entry.path);
         }
 
         let old_meta = metadata(&entry.path);
 
         if old_meta.is_err() {
-            return false;
+            bail!("Could not find path: '{:?}'", entry.path);
         }
 
         let path = Path::new(&entry.path);
         let new_path = path.with_file_name(new_name);
 
-        rename(&entry.path, &new_path).expect("Failed to rename file");
+        rename(&entry.path, &new_path).context("Failed to rename file")?;
 
         self.source.rename_entry(entry, &new_path.to_string_lossy());
 
         self.source.load_from_store();
         self.update_ix_list();
 
-        true
+        Ok(())
     }
 
     /// Moves a entry that is a file to be a directory with the same name
-    pub fn move_file_entry_to_dir_entry(&mut self, entry: Entry) -> bool {
+    pub fn move_file_entry_to_dir_entry(&mut self, entry: Entry) -> Result<()> {
         let old_meta = metadata(&entry.path);
 
         if old_meta.is_err() {
-            return false;
+            bail!("Did not find path '{:?}'", entry.path);
         }
 
         let old_meta = old_meta.unwrap();
 
         if old_meta.is_dir() {
-            return false;
+            bail!("Path is not a file: '{:?}' ", entry.path);
         }
 
         let path = Path::new(&entry.path);
@@ -466,18 +468,18 @@ impl Lens {
         let mut new_path = path.parent().unwrap().to_path_buf();
         new_path.push(file_stem);
 
-        create_dir_all(&new_path).expect("Failed to create dirs!");
+        create_dir_all(&new_path).context("Failed to create dirs!")?;
 
         new_path.push(file_name);
 
         println!("Moving from {:?} to: {:?}", path, new_path);
-        rename(&entry.path, &new_path).expect("Failed to rename file");
+        rename(&entry.path, &new_path).context("Failed to rename file")?;
 
         self.source.rename_entry(entry, &new_path.to_string_lossy());
 
         self.source.load_from_store();
         self.update_ix_list();
 
-        true
+        Ok(())
     }
 }
