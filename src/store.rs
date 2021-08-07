@@ -422,7 +422,7 @@ impl Store {
         return locations;
     }
 
-    pub fn rename_entry(&mut self, entry: Entry, new_path: &str) {
+    pub fn move_file_to_dir(&mut self, entry: Entry, new_entry_name: &str, new_path: &str) {
         let connection = self.establish_connection();
 
         let path = Path::new(&new_path);
@@ -437,13 +437,41 @@ impl Store {
             .expect("Failed to find file when renaming entry");
 
         diesel::update(file)
-            .set(f::path.eq(new_path))
+            .set((f::name.eq(new_name), f::path.eq(new_path)))
             .execute(&connection)
             .expect("Failed to update path of file");
 
         // Update entry
         diesel::update(&entry)
-            .set((e::name.eq(new_name), e::path.eq(new_path)))
+            .set((e::name.eq(new_entry_name), e::path.eq(new_path)))
+            .execute(&connection)
+            .expect("Failed to update name of entry");
+    }
+
+    pub fn rename_entry(&mut self, entry: Entry, new_entry_name: &str, new_path: &str) {
+        let connection = self.establish_connection();
+
+        let path = Path::new(&new_path);
+        let new_name = path.file_name().unwrap().to_str().unwrap();
+
+        // Update file
+        let files = self
+            .get_files(&entry)
+            .expect("Failed to find file when renaming entry")
+            .into_iter();
+            // .expect("Failed to find file when renaming entry");
+
+        for file in files {
+            println!("Update path of file: {:?}", file.name);
+            diesel::update(file)
+                .set(f::path.eq(new_path))
+                .execute(&connection)
+                .expect("Failed to update path of file");
+        }
+
+        // Update entry
+        diesel::update(&entry)
+            .set((e::name.eq(new_entry_name), e::path.eq(new_path)))
             .execute(&connection)
             .expect("Failed to update name of entry");
     }

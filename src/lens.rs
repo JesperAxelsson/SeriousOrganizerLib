@@ -220,6 +220,8 @@ impl Lens {
         let column = &self.sort.column;
         let order = &self.sort.order;
 
+        println!("Sort by {:?} {:?}", column, order);
+
         let entries: &Vec<Entry> = self.source.entriesCache.as_ref();
 
         let selector = |ax: usize, bx: usize| {
@@ -439,7 +441,11 @@ impl Lens {
 
         rename(&entry.path, &new_path).context("Failed to rename file")?;
 
-        self.source.rename_entry(entry, &new_path.to_string_lossy());
+        self.source.rename_entry(
+            entry,
+            &new_name,
+            &new_path.to_string_lossy(),
+        );
 
         self.source.load_from_store();
         self.update_ix_list();
@@ -461,7 +467,8 @@ impl Lens {
             bail!("Path is not a file: '{:?}' ", entry.path);
         }
 
-        let path = Path::new(&entry.path);
+        let path = entry.path.clone();
+        let path = Path::new(&path);
         let file_name = path.file_name().unwrap();
         let file_stem = path.file_stem().unwrap();
 
@@ -472,10 +479,14 @@ impl Lens {
 
         new_path.push(file_name);
 
-        println!("Moving from {:?} to: {:?}", path, new_path);
-        rename(&entry.path, &new_path).context("Failed to rename file")?;
+        println!("Moving from {:?} to: {:?} stem: {:?}", path, new_path, file_stem);
+        rename(&path, &new_path).context("Failed to rename file")?;
 
-        self.source.rename_entry(entry, &new_path.to_string_lossy());
+        self.source.move_file_to_dir(
+            entry,
+            &file_stem.to_string_lossy(),
+            &new_path.to_string_lossy(),
+        );
 
         self.source.load_from_store();
         self.update_ix_list();
