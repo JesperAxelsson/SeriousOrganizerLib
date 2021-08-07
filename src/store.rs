@@ -18,7 +18,7 @@ use crate::schema::labels::dsl as l;
 use crate::schema::locations::dsl as loc;
 
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use time::Instant;
 //use schema::*;
@@ -462,9 +462,13 @@ impl Store {
             // .expect("Failed to find file when renaming entry");
 
         for file in files {
-            println!("Update path of file: {:?}", file.name);
+            let mut path = PathBuf::from(&new_path);
+            path.push(&file.name);
+
+            // path.pu
+            println!("Update path of file: {:?} to {:?}", file.name, path.to_string_lossy());
             diesel::update(file)
-                .set(f::path.eq(new_path))
+                .set(f::path.eq(path.to_string_lossy()))
                 .execute(&connection)
                 .expect("Failed to update path of file");
         }
