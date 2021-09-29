@@ -114,17 +114,13 @@ pub struct Lens {
 }
 
 impl Lens {
-    pub fn new() -> Self {
+    pub fn new(db_path: &str) -> Self {
         let search = Search {
             string: String::new(),
             regex: Regex::new(".*").unwrap(),
         };
 
-        let db_path = ::std::env::current_exe()
-            .unwrap()
-            .with_file_name("test.sqlite3");
-
-        let mut source = Store::init(db_path.to_str().unwrap());
+        let mut source = Store::init(db_path);
         source.load_from_store();
 
         let mut lens = Lens {
