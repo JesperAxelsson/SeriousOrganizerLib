@@ -437,11 +437,8 @@ impl Lens {
 
         rename(&entry.path, &new_path).context("Failed to rename file")?;
 
-        self.source.rename_entry(
-            entry,
-            &new_name,
-            &new_path.to_string_lossy(),
-        );
+        self.source
+            .rename_entry(entry, &new_name, &new_path.to_string_lossy());
 
         self.source.load_from_store();
         self.update_ix_list();
@@ -475,7 +472,10 @@ impl Lens {
 
         new_path.push(file_name);
 
-        println!("Moving from {:?} to: {:?} stem: {:?}", path, new_path, file_stem);
+        println!(
+            "Moving from {:?} to: {:?} stem: {:?}",
+            path, new_path, file_stem
+        );
         rename(&path, &new_path).context("Failed to rename file")?;
 
         self.source.move_file_to_dir(
@@ -483,6 +483,20 @@ impl Lens {
             &file_stem.to_string_lossy(),
             &new_path.to_string_lossy(),
         );
+
+        self.source.load_from_store();
+        self.update_ix_list();
+
+        Ok(())
+    }
+
+    pub fn remove_entry(&mut self, entry: &Entry) -> Result<()> {
+        if let Err(err) = trash::delete(&entry.path) {
+            println!("Failed to delete file: '{}' error: '{}'", entry.name, err);
+            bail!(err);
+        }
+
+        self.source.remove_entry(entry.id);
 
         self.source.load_from_store();
         self.update_ix_list();

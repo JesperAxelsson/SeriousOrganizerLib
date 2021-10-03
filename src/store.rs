@@ -446,6 +446,8 @@ impl Store {
             .set((e::name.eq(new_entry_name), e::path.eq(new_path)))
             .execute(&connection)
             .expect("Failed to update name of entry");
+
+        self.load_from_store();
     }
 
     pub fn rename_entry(&mut self, entry: Entry, new_entry_name: &str, new_path: &str) {
@@ -459,14 +461,17 @@ impl Store {
             .get_files(&entry)
             .expect("Failed to find file when renaming entry")
             .into_iter();
-            // .expect("Failed to find file when renaming entry");
+        // .expect("Failed to find file when renaming entry");
 
         for file in files {
             let mut path = PathBuf::from(&new_path);
             path.push(&file.name);
 
-            // path.pu
-            println!("Update path of file: {:?} to {:?}", file.name, path.to_string_lossy());
+            println!(
+                "Update path of file: {:?} to {:?}",
+                file.name,
+                path.to_string_lossy()
+            );
             diesel::update(file)
                 .set(f::path.eq(path.to_string_lossy()))
                 .execute(&connection)
@@ -478,5 +483,18 @@ impl Store {
             .set((e::name.eq(new_entry_name), e::path.eq(new_path)))
             .execute(&connection)
             .expect("Failed to update name of entry");
+
+        self.load_from_store();
+    }
+
+    pub fn remove_entry(&mut self, id: EntryId) {
+        let connection = self.establish_connection();
+
+        diesel::delete(e::entries.filter(e::id.eq(id)))
+            .execute(&connection)
+            .expect("Failed to delete entry");
+
+        self.load_from_store();
+        self.load_labels(&connection);
     }
 }
