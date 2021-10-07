@@ -497,4 +497,15 @@ impl Store {
         self.load_from_store();
         self.load_labels(&connection);
     }
+
+    pub fn remove_file(&mut self, id: i32) {
+        let connection = self.establish_connection();
+
+        diesel::delete(f::files.filter(f::id.eq(id)))
+            .execute(&connection)
+            .expect("Failed to delete file");
+
+        self.load_from_store();
+        self.load_labels(&connection);
+    }
 }

@@ -503,4 +503,18 @@ impl Lens {
 
         Ok(())
     }
+
+    pub fn remove_file(&mut self, file: &File) -> Result<()> {
+        if let Err(err) = trash::delete(&file.path) {
+            println!("Failed to delete file: '{}' error: '{}'", file.name, err);
+            bail!(err);
+        }
+
+        self.source.remove_file(file.id);
+
+        self.source.load_from_store();
+        self.update_ix_list();
+
+        Ok(())
+    }
 }
