@@ -428,6 +428,8 @@ impl Store {
         let path = Path::new(&new_path);
         let new_name = path.file_name().unwrap().to_str().unwrap();
 
+        let entry_path = path.parent().unwrap().to_string_lossy();
+
         // Update file
         let file = self
             .get_files(&entry)
@@ -443,37 +445,53 @@ impl Store {
 
         // Update entry
         diesel::update(&entry)
-            .set((e::name.eq(new_entry_name), e::path.eq(new_path)))
+            .set((e::name.eq(new_entry_name), e::path.eq(entry_path)))
             .execute(&connection)
             .expect("Failed to update name of entry");
 
         self.load_from_store();
     }
 
-    pub fn rename_entry(&mut self, entry: Entry, new_entry_name: &str, new_path: &str) {
+    pub fn rename_entry(
+        &mut self,
+        entry: Entry,
+        new_entry_name: &str,
+        new_path: &str,
+        is_file_entry: bool,
+    ) {
         let connection = self.establish_connection();
 
         let path = Path::new(&new_path);
         let new_name = path.file_name().unwrap().to_str().unwrap();
 
-        // Update file
-        let files = self
+        let mut files = self
             .get_files(&entry)
             .expect("Failed to find file when renaming entry")
             .into_iter();
-        // .expect("Failed to find file when renaming entry");
 
-        for file in files {
-            let mut path = PathBuf::from(&new_path);
-            path.push(&file.name);
+        // Update file
+        if !is_file_entry {
+            // Entry is a folder, move all files in folder.
 
-            println!(
-                "Update path of file: {:?} to {:?}",
-                file.name,
-                path.to_string_lossy()
-            );
+            for file in files {
+                let mut path = PathBuf::from(&new_path);
+                path.push(&file.name);
+
+                println!(
+                    "Update path of file: {:?} to {:?}",
+                    file.name,
+                    path.to_string_lossy()
+                );
+                diesel::update(file)
+                    .set(f::path.eq(path.to_string_lossy()))
+                    .execute(&connection)
+                    .expect("Failed to update path of file");
+            }
+        } else {
+            // Entry is just a file, change file paths and name
+            let file = files.next().expect("Failed to find file for entry");
             diesel::update(file)
-                .set(f::path.eq(path.to_string_lossy()))
+                .set((f::name.eq(new_entry_name), f::path.eq(new_path)))
                 .execute(&connection)
                 .expect("Failed to update path of file");
         }

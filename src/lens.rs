@@ -419,9 +419,7 @@ impl Lens {
 
     /*** Entry Operations ***/
     pub fn rename_entry(&mut self, entry: Entry, new_name: &str) -> Result<()> {
-        let new_meta = metadata(new_name);
-
-        if new_meta.is_ok() {
+        if metadata(new_name).is_ok() {
             // Path already exists
             bail!("This name already exists: '{:?}'", entry.path);
         }
@@ -437,8 +435,12 @@ impl Lens {
 
         rename(&entry.path, &new_path).context("Failed to rename file")?;
 
-        self.source
-            .rename_entry(entry, &new_name, &new_path.to_string_lossy());
+        self.source.rename_entry(
+            entry,
+            &new_name,
+            &new_path.to_string_lossy(),
+            old_meta?.is_file(),
+        );
 
         self.source.load_from_store();
         self.update_ix_list();
@@ -454,9 +456,7 @@ impl Lens {
             bail!("Did not find path '{:?}'", entry.path);
         }
 
-        let old_meta = old_meta.unwrap();
-
-        if old_meta.is_dir() {
+        if old_meta?.is_dir() {
             bail!("Path is not a file: '{:?}' ", entry.path);
         }
 
@@ -472,10 +472,6 @@ impl Lens {
 
         new_path.push(file_name);
 
-        println!(
-            "Moving from {:?} to: {:?} stem: {:?}",
-            path, new_path, file_stem
-        );
         rename(&path, &new_path).context("Failed to rename file")?;
 
         self.source.move_file_to_dir(
@@ -491,9 +487,20 @@ impl Lens {
     }
 
     pub fn remove_entry(&mut self, entry: &Entry) -> Result<()> {
-        if let Err(err) = trash::delete(&entry.path) {
-            println!("Failed to delete file: '{}' error: '{}'", entry.name, err);
-            bail!(err);
+        let meta = metadata(&entry.path)?;
+
+        if meta.is_file() {
+            if let Err(err) = fs::remove_file(&entry.path) {
+                println!("Failed to delete entry: '{}' error: '{}'", entry.name, err);
+                bail!(err);
+            }
+        }
+
+        if meta.is_dir() {
+            if let Err(err) = fs::remove_dir_all(&entry.path) {
+                println!("Failed to delete entry: '{}' error: '{}'", entry.name, err);
+                bail!(err);
+            }
         }
 
         self.source.remove_entry(entry.id);
@@ -505,7 +512,7 @@ impl Lens {
     }
 
     pub fn remove_file(&mut self, file: &File) -> Result<()> {
-        if let Err(err) = trash::delete(&file.path) {
+        if let Err(err) = fs::remove_file(&file.path) {
             println!("Failed to delete file: '{}' error: '{}'", file.name, err);
             bail!(err);
         }
