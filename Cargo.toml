@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 scan_dir = "0.3.3"
-time = "0.2.22"
+time = "0.3"
 regex = "1.4.1"
 
 serde = "1.0.117"
