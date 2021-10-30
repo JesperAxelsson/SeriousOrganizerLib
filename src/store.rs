@@ -28,10 +28,10 @@ embed_migrations!();
 pub struct Store {
     db_url: String,
     pub entriesCache: Vec<Entry>,
-    filesCache: HashMap<EntryId, Vec<File>>,
+    filesCache: HashMap<i32, Vec<File>>,
     labelsCache: Vec<Label>,
-    labelLookupCache: HashMap<LabelId, HashSet<EntryId>>,
-    entryLabelLookup: HashMap<EntryId, HashSet<LabelId>>,
+    labelLookupCache: HashMap<i32, HashSet<i32>>,
+    entryLabelLookup: HashMap<i32, HashSet<i32>>,
 }
 
 impl Store {
@@ -110,14 +110,14 @@ impl Store {
             .load(connection)
             .expect("Failed to load entry mapping");
 
-        let mut lbl_map: HashMap<LabelId, HashSet<EntryId>> = HashMap::new();
+        let mut lbl_map: HashMap<i32, HashSet<i32>> = HashMap::new();
 
         for e2l in entry2label.iter() {
             let set = lbl_map.entry(e2l.label_id).or_insert(HashSet::new());
             set.insert(e2l.entry_id);
         }
 
-        let mut entry_map: HashMap<EntryId, HashSet<LabelId>> = HashMap::new();
+        let mut entry_map: HashMap<i32, HashSet<i32>> = HashMap::new();
 
         for e2l in entry2label.iter() {
             let set = entry_map.entry(e2l.entry_id).or_insert(HashSet::new());
@@ -128,7 +128,7 @@ impl Store {
         self.labelLookupCache = lbl_map;
     }
 
-    pub fn update(&mut self, dir_entries: &Vec<(LocationId, DirEntry)>) {
+    pub fn update(&mut self, dir_entries: &Vec<(i32, DirEntry)>) {
         use std::collections::HashMap;
         use std::collections::HashSet;
 
@@ -275,7 +275,7 @@ impl Store {
     }
 
     /*** Labels ***/
-    pub fn add_entry_labels(&mut self, entry_ids: Vec<EntryId>, label_ids: Vec<LabelId>) {
+    pub fn add_entry_labels(&mut self, entry_ids: Vec<i32>, label_ids: Vec<i32>) {
         use diesel::result::Error;
 
         let mut insert_query = Vec::with_capacity(entry_ids.len() * label_ids.len());
@@ -315,7 +315,7 @@ impl Store {
         self.load_labels(&connection);
     }
 
-    pub fn remove_entry_labels(&mut self, entry_ids: Vec<EntryId>, label_ids: Vec<LabelId>) {
+    pub fn remove_entry_labels(&mut self, entry_ids: Vec<i32>, label_ids: Vec<i32>) {
         use diesel::result::Error;
 
         let connection = self.establish_connection();
@@ -341,11 +341,11 @@ impl Store {
         self.load_labels(&connection);
     }
 
-    pub fn entry_labels(&self, entry_id: EntryId) -> Option<&HashSet<LabelId>> {
+    pub fn entry_labels(&self, entry_id: i32) -> Option<&HashSet<i32>> {
         return self.entryLabelLookup.get(&entry_id);
     }
 
-    pub fn dir_labels(&self, entry_id: EntryId) -> Vec<LabelId> {
+    pub fn dir_labels(&self, entry_id: i32) -> Vec<i32> {
         let mut labels = Vec::new();
 
         for (label_id, entries) in self.labelLookupCache.iter() {
@@ -357,7 +357,7 @@ impl Store {
         return labels;
     }
 
-    pub fn has_label(&self, entry_id: EntryId, label_id: LabelId) -> bool {
+    pub fn has_label(&self, entry_id: i32, label_id: i32) -> bool {
         if let Some(entries) = self.labelLookupCache.get(&label_id) {
             return entries.contains(&entry_id);
         }
@@ -381,7 +381,7 @@ impl Store {
         return true;
     }
 
-    pub fn remove_label(&mut self, id: LabelId) {
+    pub fn remove_label(&mut self, id: i32) {
         let connection = self.establish_connection();
 
         diesel::delete(l::labels.filter(l::id.eq(id)))
@@ -405,7 +405,7 @@ impl Store {
             .expect("Failed to insert new location");
     }
 
-    pub fn remove_location(&mut self, id: LocationId) {
+    pub fn remove_location(&mut self, id: i32) {
         let connection = self.establish_connection();
 
         diesel::delete(loc::locations.filter(loc::id.eq(id)))
@@ -505,7 +505,7 @@ impl Store {
         self.load_from_store();
     }
 
-    pub fn remove_entry(&mut self, id: EntryId) {
+    pub fn remove_entry(&mut self, id: i32) {
         let connection = self.establish_connection();
 
         diesel::delete(e::entries.filter(e::id.eq(id)))

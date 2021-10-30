@@ -5,14 +5,7 @@
 //extern crate rusqlite;
 
 #[macro_use]
-extern crate serde_derive;
-
-extern crate num_derive;
-
-#[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate diesel_derive_newtype;
 #[macro_use]
 extern crate diesel_migrations;
 

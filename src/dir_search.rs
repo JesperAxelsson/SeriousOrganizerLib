@@ -48,7 +48,7 @@ impl DirEntry {
     }
 }
 
-pub fn list_files_in_dir(location_id: LocationId, path: &str) -> Vec<DirEntry> {
+pub fn list_files_in_dir(location_id: i32, path: &str) -> Vec<DirEntry> {
     trace!("Starting glob: {:?}", path);
 
     let mut vec: Vec<DirEntry> = Vec::new();
@@ -163,7 +163,7 @@ fn get_size(dir_path: &PathBuf) -> u64 {
 }
 
 
-pub fn get_all_data(paths: Vec<(LocationId, String)>) -> Vec<(LocationId, DirEntry)> {
+pub fn get_all_data(paths: Vec<(i32, String)>) -> Vec<(i32, DirEntry)> {
     let mut vec = Vec::new();
 
     let start =Instant::now();

@@ -5,8 +5,6 @@ use anyhow::Context;
 use anyhow::{bail, Result};
 use log::{debug, error, info, trace, warn};
 
-use num_derive::{FromPrimitive, ToPrimitive};
-
 use regex::{escape, Regex, RegexBuilder};
 use time::Instant;
 
@@ -22,7 +20,7 @@ use std::fs;
 use std::fs::metadata;
 
 //use intmap::IntMap;
-use crate::models::{DirEntry, Entry, EntryId, File, LabelId, Location, LocationId};
+use crate::models::{DirEntry, Entry, File, Location};
 use crate::store::Store;
 
 #[derive(Debug, Copy, Clone)]
@@ -34,7 +32,7 @@ pub enum LabelState {
 
 #[derive(Debug, Clone)]
 pub struct Label {
-    pub id: LabelId,
+    pub id: i32,
     pub name: String,
     pub state: LabelState,
 }
@@ -82,7 +80,7 @@ impl Sort {
     }
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(u32)]
 pub enum SortColumn {
     Name = 0,
@@ -91,7 +89,7 @@ pub enum SortColumn {
     Size = 3,
 }
 
-#[derive(Debug, Clone, Copy, FromPrimitive, ToPrimitive, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(u32)]
 pub enum SortOrder {
     Asc = 0,
@@ -103,8 +101,8 @@ pub enum SortOrder {
 pub struct Lens {
     pub source: Store,
     pub ix_list: Vec<usize>,
-    include_labels: HashSet<LabelId>,
-    exlude_labels: HashSet<LabelId>,
+    include_labels: HashSet<i32>,
+    exlude_labels: HashSet<i32>,
 
     /// Used for application using Lens
     label_states: Vec<Label>,
@@ -139,7 +137,7 @@ impl Lens {
         lens
     }
 
-    pub fn update_data(&mut self, data: &mut Vec<(LocationId, DirEntry)>) {
+    pub fn update_data(&mut self, data: &mut Vec<(i32, DirEntry)>) {
         trace!("Starting data update");
 
         self.ix_list.clear();
@@ -177,7 +175,7 @@ impl Lens {
         trace!("ix_list exclude: {:?}  ", self.exlude_labels);
     }
 
-    fn label_filter(&self, entry_id: EntryId) -> bool {
+    fn label_filter(&self, entry_id: i32) -> bool {
         if self.exlude_labels.is_empty() && self.include_labels.is_empty() {
             return true;
         }
@@ -302,7 +300,7 @@ impl Lens {
     // *** Labels ***
 
     pub fn add_inlude_label(&mut self, label_id: u32) {
-        let label_id = LabelId(label_id as i32);
+        let label_id = label_id as i32;
         self.exlude_labels.remove(&label_id);
         self.include_labels.insert(label_id);
 
@@ -311,7 +309,7 @@ impl Lens {
     }
 
     pub fn add_exclude_label(&mut self, label_id: u32) {
-        let label_id = LabelId(label_id as i32);
+        let label_id = label_id as i32;
         self.include_labels.remove(&label_id);
         self.exlude_labels.insert(label_id);
         self.update_ix_list();
@@ -320,7 +318,7 @@ impl Lens {
     }
 
     pub fn remove_label_filter(&mut self, label_id: u32) {
-        let label_id = LabelId(label_id as i32);
+        let label_id = label_id as i32;
         self.exlude_labels.remove(&label_id);
         self.include_labels.remove(&label_id);
         self.update_ix_list();
@@ -335,7 +333,7 @@ impl Lens {
     }
 
     pub fn remove_label(&mut self, label_id: u32) {
-        self.source.remove_label(LabelId(label_id as i32));
+        self.source.remove_label(label_id as i32);
         self.remove_label_filter(label_id);
 
         self.update_label_states();
@@ -366,16 +364,16 @@ impl Lens {
         &self.label_states
     }
 
-    pub fn entry_labels(&self, id: u32) -> Vec<LabelId> {
-        self.source.dir_labels(EntryId(id as i32))
+    pub fn entry_labels(&self, id: u32) -> Vec<i32> {
+        self.source.dir_labels(id as i32)
     }
 
     pub fn add_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
         let start = Instant::now();
         let count = entries.len();
         self.source.add_entry_labels(
-            entries.into_iter().map(|e| EntryId(e as i32)).collect(),
-            labels.into_iter().map(|l| LabelId(l as i32)).collect(),
+            entries.into_iter().map(|e| e as i32).collect(),
+            labels.into_iter().map(|e| e as i32).collect(),
         );
 
         trace!(
@@ -388,10 +386,8 @@ impl Lens {
     pub fn remove_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
         let start = Instant::now();
         let count = entries.len();
-        self.source.remove_entry_labels(
-            entries.into_iter().map(|e| EntryId(e as i32)).collect(),
-            labels.into_iter().map(|l| LabelId(l as i32)).collect(),
-        );
+        self.source
+            .remove_entry_labels(entries.into_iter().map(|e|e as i32).collect(), labels.into_iter().map(|e|e as i32).collect());
 
         trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
@@ -406,10 +402,10 @@ impl Lens {
     }
 
     pub fn remove_location(&mut self, id: u32) {
-        self.source.remove_location(LocationId(id as i32));
+        self.source.remove_location(id as i32);
     }
 
-    pub fn remove_location_id(&mut self, id: LocationId) {
+    pub fn remove_location_id(&mut self, id: i32) {
         self.source.remove_location(id);
     }
 
