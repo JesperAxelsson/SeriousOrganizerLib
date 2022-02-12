@@ -14,6 +14,7 @@ use crate::models::*;
 use crate::schema::entries::dsl as e;
 use crate::schema::entry2labels::dsl as e2l;
 use crate::schema::files::dsl as f;
+use crate::schema::label_auto_filters::dsl as aut;
 use crate::schema::labels::dsl as l;
 use crate::schema::locations::dsl as loc;
 
@@ -83,6 +84,9 @@ impl Store {
         self.load_files(&conn);
         self.labelsCache = l::labels.load(&conn).expect("Failed to load labels");
         self.load_labels(&conn);
+
+        // Sort entries
+        self.entriesCache.sort_by_key(|e| e.id);
     }
 
     fn load_files(&mut self, connection: &SqliteConnection) {
@@ -525,5 +529,34 @@ impl Store {
 
         self.load_from_store();
         self.load_labels(&connection);
+    }
+
+    pub fn get_label_filters(&self) -> Vec<LabelAutoFilter> {
+        let connection = self.establish_connection();
+
+        let filters: Vec<LabelAutoFilter> = aut::label_auto_filters
+            .load(&connection)
+            .expect("Failed to load files");
+
+        debug!("Got {} auto filters", filters.len());
+        filters
+    }
+
+    pub fn add_update_label_filters(&mut self, filter: &LabelAutoFilter) {
+        let connection = self.establish_connection();
+
+        if filter.id > 0 {
+            // Update
+            diesel::update(aut::label_auto_filters)
+                .set(filter)
+                .execute(&connection)
+                .expect("Failed to update entry");
+        } else {
+            // Add
+            diesel::insert_into(aut::label_auto_filters)
+                .values(filter)
+                .execute(&connection)
+                .expect("Failed to insert new location");
+        }
     }
 }

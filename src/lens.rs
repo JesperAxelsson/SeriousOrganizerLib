@@ -20,7 +20,7 @@ use std::fs;
 use std::fs::metadata;
 
 //use intmap::IntMap;
-use crate::models::{DirEntry, Entry, File, Location};
+use crate::models::{DirEntry, Entry, File, LabelAutoFilter, Location};
 use crate::store::Store;
 
 #[derive(Debug, Copy, Clone)]
@@ -273,6 +273,17 @@ impl Lens {
         }
     }
 
+    pub fn get_dir_entry_by_id(&self, entry_id: i32) -> Option<&Entry> {
+        let ix = self
+            .source
+            .entriesCache
+            .binary_search_by_key(&entry_id, |e| e.id);
+        if let Ok(ix) = ix {
+            return self.source.entriesCache.get(ix);
+        } else {
+            None
+        }
+    }
     // *** Files ***
 
     pub fn get_dir_files(&self, ix: usize) -> Option<&Vec<File>> {
@@ -386,8 +397,10 @@ impl Lens {
     pub fn remove_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
         let start = Instant::now();
         let count = entries.len();
-        self.source
-            .remove_entry_labels(entries.into_iter().map(|e|e as i32).collect(), labels.into_iter().map(|e|e as i32).collect());
+        self.source.remove_entry_labels(
+            entries.into_iter().map(|e| e as i32).collect(),
+            labels.into_iter().map(|e| e as i32).collect(),
+        );
 
         trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
@@ -519,5 +532,31 @@ impl Lens {
         self.update_ix_list();
 
         Ok(())
+    }
+
+    pub fn get_label_filters(&self) -> Vec<LabelAutoFilter> {
+        self.source.get_label_filters()
+    }
+
+    pub fn add_update_label_filters(&mut self, filter: &LabelAutoFilter) {
+        self.source.add_update_label_filters(filter);
+    }
+
+    /// Return entry ids for all entries that match filter
+    pub fn get_entries_for_regex(&mut self, regex: String) -> Result<Vec<i32>> {
+        let mut id_list = Vec::new();
+        let re = RegexBuilder::new(&regex)
+            .case_insensitive(true)
+            .unicode(true)
+            .build()
+            .context("Invalid regex string")?;
+
+        for entry in self.source.entriesCache.iter() {
+            if re.is_match(&entry.name) {
+                id_list.push(entry.id);
+            }
+        }
+
+        Ok(id_list)
     }
 }

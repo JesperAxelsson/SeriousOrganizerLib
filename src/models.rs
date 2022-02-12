@@ -59,3 +59,12 @@ pub struct Entry2Label {
     pub entry_id: i32,
     pub label_id: i32,
 }
+
+#[derive(Identifiable, Insertable, Queryable, AsChangeset, Clone, Debug)]
+#[table_name = "label_auto_filters"]
+pub struct LabelAutoFilter {
+    pub id: i32,
+    pub name: String,
+    pub filter: String,
+    pub label_id: i32,
+}
