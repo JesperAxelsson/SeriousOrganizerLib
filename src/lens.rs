@@ -538,14 +538,18 @@ impl Lens {
         self.source.get_label_filters()
     }
 
-    pub fn add_update_label_filters(&mut self, filter: &LabelAutoFilter) {
-        self.source.add_update_label_filters(filter);
+    pub fn add_update_label_filter(&mut self, filter: &LabelAutoFilter) {
+        self.source.add_update_label_filter(filter);
+    }
+
+    pub fn delete_label_filter(&mut self, filter: &LabelAutoFilter) {
+        self.source.delete_label_filter(filter);
     }
 
     /// Return entry ids for all entries that match filter
-    pub fn get_entries_for_regex(&mut self, regex: String) -> Result<Vec<i32>> {
+    pub fn get_entries_for_regex(&self, regex: &str) -> Result<Vec<i32>> {
         let mut id_list = Vec::new();
-        let re = RegexBuilder::new(&regex)
+        let re = RegexBuilder::new(regex)
             .case_insensitive(true)
             .unicode(true)
             .build()

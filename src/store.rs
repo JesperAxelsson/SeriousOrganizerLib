@@ -536,13 +536,14 @@ impl Store {
 
         let filters: Vec<LabelAutoFilter> = aut::label_auto_filters
             .load(&connection)
-            .expect("Failed to load files");
+            .expect("Failed to load label filters");
 
         debug!("Got {} auto filters", filters.len());
         filters
     }
 
-    pub fn add_update_label_filters(&mut self, filter: &LabelAutoFilter) {
+    pub fn add_update_label_filter(&mut self, filter: &LabelAutoFilter) {
+        use std::convert::From;
         let connection = self.establish_connection();
 
         if filter.id > 0 {
@@ -550,13 +551,24 @@ impl Store {
             diesel::update(aut::label_auto_filters)
                 .set(filter)
                 .execute(&connection)
-                .expect("Failed to update entry");
+                .expect("Failed to update label filter");
         } else {
             // Add
+            let insertable = LabelAutoFilterInsert::new(filter);
             diesel::insert_into(aut::label_auto_filters)
-                .values(filter)
+                .values(insertable)
                 .execute(&connection)
-                .expect("Failed to insert new location");
+                .expect("Failed to insert new label filter");
         }
+    }
+
+    pub fn delete_label_filter(&mut self, filter: &LabelAutoFilter) {
+        use std::convert::From;
+        let connection = self.establish_connection();
+
+        // Delete
+        diesel::delete(aut::label_auto_filters.filter(aut::id.eq(filter.id)))
+            .execute(&connection)
+            .expect("Failed to delete label filter");
     }
 }

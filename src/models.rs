@@ -60,11 +60,29 @@ pub struct Entry2Label {
     pub label_id: i32,
 }
 
-#[derive(Identifiable, Insertable, Queryable, AsChangeset, Clone, Debug)]
+#[derive(Identifiable, Queryable, AsChangeset, Clone, Debug)]
 #[table_name = "label_auto_filters"]
 pub struct LabelAutoFilter {
     pub id: i32,
     pub name: String,
     pub filter: String,
     pub label_id: i32,
+}
+
+#[derive(Insertable, AsChangeset, Clone, Debug)]
+#[table_name = "label_auto_filters"]
+pub(crate) struct LabelAutoFilterInsert {
+    pub name: String,
+    pub filter: String,
+    pub label_id: i32,
+}
+
+impl LabelAutoFilterInsert {
+    pub fn new(item: &LabelAutoFilter) -> Self {
+        LabelAutoFilterInsert {
+            name: item.name.clone(),
+            filter: item.filter.clone(),
+            label_id: item.label_id,
+        }
+    }
 }
