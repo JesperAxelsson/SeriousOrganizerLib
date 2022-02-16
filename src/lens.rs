@@ -392,6 +392,9 @@ impl Lens {
             count,
             start.elapsed().whole_milliseconds()
         );
+
+
+        self.update_ix_list();
     }
 
     pub fn remove_entry_labels(&mut self, entries: Vec<u32>, labels: Vec<u32>) {
@@ -407,6 +410,9 @@ impl Lens {
             count,
             start.elapsed().whole_milliseconds()
         );
+
+
+        self.update_ix_list();
     }
 
     /*** Locations ***/
