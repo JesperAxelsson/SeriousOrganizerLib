@@ -464,7 +464,7 @@ impl Lens {
     }
 
     /// Moves a entry that is a file to be a directory with the same name
-    pub fn move_file_entry_to_dir_entry(&mut self, entry: Entry) -> Result<()> {
+    pub fn move_file_entry_to_dir_entry(&mut self, entry: &Entry) -> Result<()> {
         let old_meta = metadata(&entry.path);
 
         if old_meta.is_err() {

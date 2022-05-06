@@ -426,7 +426,7 @@ impl Store {
         return locations;
     }
 
-    pub fn move_file_to_dir(&mut self, entry: Entry, new_entry_name: &str, new_path: &str) {
+    pub fn move_file_to_dir(&mut self, entry: &Entry, new_entry_name: &str, new_path: &str) {
         let connection = self.establish_connection();
 
         let path = Path::new(&new_path);
@@ -448,7 +448,7 @@ impl Store {
             .expect("Failed to update path of file");
 
         // Update entry
-        diesel::update(&entry)
+        diesel::update(entry)
             .set((e::name.eq(new_entry_name), e::path.eq(entry_path)))
             .execute(&connection)
             .expect("Failed to update name of entry");
