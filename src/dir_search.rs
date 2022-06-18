@@ -1,7 +1,9 @@
 #![allow(unused_imports)]
 use log::{error, info, trace, warn};
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::fs;
+use std::fs::Metadata;
 use std::mem;
 use std::path::PathBuf;
 use std::thread;
@@ -9,7 +11,7 @@ use std::thread;
 use time::Instant;
 
 use crate::models::*;
-use scan_dir::ScanDir;
+use jwalk::WalkDir;
 
 impl Drop for DirEntry {
     fn drop(&mut self) {
@@ -38,143 +40,148 @@ impl PartialEq for DirEntry {
 
 impl Eq for DirEntry {}
 
-impl DirEntry {
-    pub fn get_file_entry(&self, ix: usize) -> Option<&FileEntry> {
-        if ix < self.files.len() {
-            Some(&self.files[ix])
-        } else {
-            None
-        }
-    }
-}
-
-pub fn list_files_in_dir(location_id: i32, path: &str) -> Vec<DirEntry> {
-    trace!("Starting glob: {:?}", path);
+fn list_files_in_dir(location_id: i32, path: &str) -> Vec<DirEntry> {
+    // trace!("Starting glob: {:?}", path);
 
     let mut vec: Vec<DirEntry> = Vec::new();
 
-    let path = PathBuf::from(path);
+    let current_dir: RefCell<Option<DirEntry>> = RefCell::new(None);
 
-    if !path.exists() {
-        info!("Sorry path: {:?} does not exits", path);
-        return vec;
+    for entry in WalkDir::new(path)
+        .sort(true)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        let meta = get_meta(&entry.path());
+
+        // *** Handle file ***
+        if meta.is_file() && entry.depth() == 1 {
+            // println!("Found root file {:?} {}", entry.path(), entry.depth);
+            let file_name = entry
+                .file_name()
+                .to_str()
+                .expect("Failed to convert filename to rust string")
+                .to_string();
+            let path = entry
+                .path()
+                .to_str()
+                .expect("Failed to convert filepath to rust string")
+                .to_string();
+
+            let ff = vec![FileEntry {
+                name: file_name.clone(),
+                path: path.clone(),
+                size: meta.len(),
+            }];
+
+            let e = DirEntry {
+                location_id,
+                name: file_name,
+                path: path,
+                files: ff,
+                size: meta.len(),
+            };
+
+            vec.push(e);
+        } else if meta.is_file() && entry.depth() > 0 {
+            // Add files to dir entry
+            // println!("Found file {:?} ", entry.path());
+
+            let path = entry
+                .path()
+                .to_str()
+                .expect("Failed to convert filepath to rust string")
+                .to_string();
+
+            let ff = FileEntry {
+                name: entry
+                    .file_name()
+                    .to_str()
+                    .expect("Failed to convert filename to rust string")
+                    .to_string(),
+                path: path,
+                size: meta.len(),
+            };
+
+            if let Some(dir) = &mut *current_dir.borrow_mut() {
+                dir.size += ff.size;
+                dir.files.push(ff);
+            }
+        } else
+        // *** Handle dir ***
+        if meta.is_dir() && entry.depth() == 1 {
+            // Create new dir entry to work in
+            // println!("Found root dir {:?} {}", entry.path(), entry.depth);
+
+            let foo = current_dir.borrow_mut().take();
+            if let Some(f) = foo {
+                vec.push(f);
+            }
+
+            // trace!("***");
+
+            let name = entry
+                .file_name()
+                .to_str()
+                .expect("Failed to convert dirname to rust string")
+                .to_string();
+            let path = entry
+                .path()
+                .to_str()
+                .expect("Failed to convert dirpath to rust string")
+                .to_string();
+
+            let dir = DirEntry {
+                location_id,
+                name: name,
+                path: path,
+                files: Vec::new(),
+                size: 0,
+            };
+
+            *current_dir.borrow_mut() = Some(dir);
+        }
     }
 
-    let sized = |files: &Vec<FileEntry>| {
-        let mut size: u64 = 0;
-        for f in files.iter() {
-            size += f.size;
-        }
-        size
-    };
-
-    ScanDir::all()
-        .skip_hidden(true)
-        .read(path, |iter| {
-            for (path, _) in iter {
-                let path = path.path();
-                let meta = path.metadata().expect("Failed to read metadata");
-
-                // *** Handle file ***
-                if meta.is_file() {
-                    let ff = vec![FileEntry {
-                        name: path.file_name().expect("Failed to read filename").to_str().expect("Failed to convert filename to rust string").to_string(),
-                        path: path.to_str().expect("Failed to convert filepath to rust string").to_string(),
-                        size: meta.len(),
-                    }];
-
-                    let e = DirEntry {
-                        location_id,
-                        name: path.file_name().expect("Failed to read dirname").to_str().expect("Failed to convert dirname to rust string").to_string(),
-                        path: path.to_str().expect("Failed to convert dirpath to rust string").to_string(),
-                        files: ff,
-                        size: meta.len(),
-                    };
-
-                    vec.push(e);
-                }
-
-                // *** Handle dir ***
-                if meta.is_dir() {
-                    let mut files = Vec::new();
-
-                    trace!("***");
-
-                    ScanDir::files()
-                        .walk(&path, |iter| {
-                            for (entry, name) in iter {
-                                trace!("File {:?} has full path {:?}", name, entry.path());
-                                let dir = entry.path();
-
-                                trace!("File: {:?}", &dir);
-
-                                let size = get_size(&dir);
-
-                                // let name = shared_path(&dir, name.len());;
-                                files.push(FileEntry {
-                                    name: name,
-                                    path: dir.to_string_lossy().into(),
-                                    size: size,
-                                });
-                            }
-                        })
-                        .expect("Failed to run ScanDir::Files()");
-
-                    let size = sized(&files);
-                    // files.shrink_to_fit();
-
-                    // let len = path.file_name().unwrap().to_str().unwrap().len();
-
-                    let name = path.file_name().expect("Failed to read dirname").to_str().expect("Failed to convert dirname to rust string").to_string();
-                    let path = path.to_str().expect("Failed to convert dirpath to rust string").to_string();
-
-                    // let name = shared_path(&path, len);
-
-                    let e = DirEntry {
-                        location_id,
-                        name: name,
-                        path: path,
-                        files: files,
-                        size: size,
-                    };
-
-                    vec.push(e);
-                }
-            }
-        })
-        .expect("Scan dir failed!");
+    let foo = current_dir.borrow_mut().take();
+    if let Some(f) = foo {
+        vec.push(f);
+    }
 
     vec
 }
 
-fn get_size(dir_path: &PathBuf) -> u64 {
+#[inline]
+fn get_meta(dir_path: &PathBuf) -> Metadata {
     if cfg!(windows) {
         let dir_path = dir_path.to_str().expect("Failed to read path");
 
         if dir_path.len() >= 260 {
             let strr = "\\??\\".to_owned() + dir_path;
-            fs::metadata(&strr).expect("failed to read metadata").len()
+            fs::metadata(&strr).expect("failed to read metadata")
         } else {
-            fs::metadata(&dir_path).expect("failed to read metadata").len()
-        }     
+            fs::metadata(&dir_path).expect("failed to read metadata")
+        }
     } else {
-        fs::metadata(&dir_path).expect("failed to read metadata").len()
+        fs::metadata(&dir_path).expect("failed to read metadata")
     }
 }
 
-
-pub fn get_all_data(paths: Vec<(i32, String)>) -> Vec<(i32, DirEntry)> {
+pub fn get_all_data(paths: &Vec<(i32, String)>) -> Vec<(i32, DirEntry)> {
     let mut vec = Vec::new();
 
-    let start =Instant::now();
+    let start = Instant::now();
 
     let mut children = Vec::new();
 
-    for p in paths {
+    for p in paths.iter().cloned() {
         children.push(thread::spawn(move || {
             let start = Instant::now();
 
-            let vec1 = list_files_in_dir(p.0, &p.1).into_iter().map(|d| (p.0, d)).collect();
+            let vec1 = list_files_in_dir(p.0, &p.1)
+                .into_iter()
+                .map(|d| (p.0, d))
+                .collect();
 
             info!(
                 "Path {:?} entries took: {:?} ms",
@@ -191,9 +198,8 @@ pub fn get_all_data(paths: Vec<(i32, String)>) -> Vec<(i32, DirEntry)> {
 
     vec.sort();
 
-
     info!(
-        "Got {:?} entries took: {:?} ms",
+        "Got {:?} entries took: {:?} ms, walkdir",
         vec.len(),
         start.elapsed().whole_milliseconds()
     );

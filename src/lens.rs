@@ -138,12 +138,16 @@ impl Lens {
     }
 
     pub fn update_data(&mut self, data: &mut Vec<(i32, DirEntry)>) {
+        let start = Instant::now();
         trace!("Starting data update");
 
         self.ix_list.clear();
         self.source.update(data);
 
-        trace!("Data updated");
+        trace!(
+            "Data updated, {:?} ms",
+            start.elapsed().whole_milliseconds()
+        );
 
         self.update_ix_list();
     }
@@ -393,7 +397,6 @@ impl Lens {
             start.elapsed().whole_milliseconds()
         );
 
-
         self.update_ix_list();
     }
 
@@ -410,7 +413,6 @@ impl Lens {
             count,
             start.elapsed().whole_milliseconds()
         );
-
 
         self.update_ix_list();
     }

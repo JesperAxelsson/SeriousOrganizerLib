@@ -5,7 +5,7 @@ authors = ["Jesper Axelsson <jesperaxe@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-scan_dir = "0.3.3"
+# scan_dir = "0.3.3"
 time = "0.3"
 regex = "1.5"
 
@@ -14,3 +14,5 @@ diesel_migrations = "1.4.0"
 
 log = "0.4"
 anyhow="1"
+
+jwalk="*"

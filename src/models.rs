@@ -20,7 +20,7 @@ pub struct DirEntry {
     pub size: u64,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Ord, PartialEq, Eq, PartialOrd)]
 pub struct FileEntry {
     pub name: String,
     pub path: String,
