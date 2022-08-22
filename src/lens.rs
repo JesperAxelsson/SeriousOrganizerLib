@@ -228,7 +228,7 @@ impl Lens {
 
             match column {
                 SortColumn::Date => a.name.cmp(&b.name),
-                SortColumn::Name => a.name.cmp(&b.name),
+                SortColumn::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
                 SortColumn::Path => a.path.cmp(&b.path),
                 SortColumn::Size => a.size.cmp(&b.size),
             }
