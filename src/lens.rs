@@ -87,6 +87,7 @@ pub enum SortColumn {
     Path = 1,
     Date = 2,
     Size = 3,
+    Grade = 4,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -231,6 +232,7 @@ impl Lens {
                 SortColumn::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
                 SortColumn::Path => a.path.cmp(&b.path),
                 SortColumn::Size => a.size.cmp(&b.size),
+                SortColumn::Grade => a.grade.unwrap_or(0).cmp(&b.grade.unwrap_or(0)),
             }
         };
 
