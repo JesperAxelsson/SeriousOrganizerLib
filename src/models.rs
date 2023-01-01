@@ -3,7 +3,7 @@
 use crate::schema::*;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Clone, Debug)]
-#[table_name = "locations"]
+#[diesel(table_name = locations)]
 pub struct Location {
     pub id: i32,
     pub name: String,
@@ -28,17 +28,18 @@ pub struct FileEntry {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Identifiable, Queryable, AsChangeset, Clone, Debug)]
-#[table_name = "entries"]
+#[diesel(table_name = entries)]
 pub struct Entry {
     pub id: i32,
     pub location_id: i32,
     pub name: String,
     pub path: String,
     pub size: i64,
+    pub grade: Option<i32>,
 }
 
 #[derive(Identifiable, Queryable, AsChangeset, Clone, Debug)]
-#[table_name = "files"]
+#[diesel(table_name = files)]
 pub struct File {
     pub id: i32,
     pub entry_id: i32,
@@ -48,7 +49,7 @@ pub struct File {
 }
 
 #[derive(Identifiable, Queryable, AsChangeset, Clone, Debug)]
-#[table_name = "labels"]
+#[diesel(table_name = labels)]
 pub struct Label {
     pub id: i32,
     pub name: String,
@@ -61,7 +62,7 @@ pub struct Entry2Label {
 }
 
 #[derive(Identifiable, Queryable, AsChangeset, Clone, Debug)]
-#[table_name = "label_auto_filters"]
+#[diesel(table_name = label_auto_filters)]
 pub struct LabelAutoFilter {
     pub id: i32,
     pub name: String,
@@ -70,7 +71,7 @@ pub struct LabelAutoFilter {
 }
 
 #[derive(Insertable, AsChangeset, Clone, Debug)]
-#[table_name = "label_auto_filters"]
+#[diesel(table_name = label_auto_filters)]
 pub(crate) struct LabelAutoFilterInsert {
     pub name: String,
     pub filter: String,

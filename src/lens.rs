@@ -465,6 +465,10 @@ impl Lens {
         Ok(())
     }
 
+    pub fn set_grade(&mut self, entry: Entry, grade: i32) {
+        self.source.set_grade(entry, grade);
+    }
+
     /// Moves a entry that is a file to be a directory with the same name
     pub fn move_file_entry_to_dir_entry(&mut self, entry: &Entry) -> Result<()> {
         let old_meta = metadata(&entry.path);

@@ -1,21 +1,24 @@
-table! {
+// @generated automatically by Diesel CLI.
+
+diesel::table! {
     entries (id) {
         id -> Integer,
         location_id -> Integer,
         name -> Text,
         path -> Text,
         size -> BigInt,
+        grade -> Nullable<Integer>,
     }
 }
 
-table! {
+diesel::table! {
     entry2labels (entry_id, label_id) {
         entry_id -> Integer,
         label_id -> Integer,
     }
 }
 
-table! {
+diesel::table! {
     files (id) {
         id -> Integer,
         entry_id -> Integer,
@@ -25,23 +28,7 @@ table! {
     }
 }
 
-table! {
-    labels (id) {
-        id -> Integer,
-        name -> Text,
-    }
-}
-
-table! {
-    locations (id) {
-        id -> Integer,
-        name -> Text,
-        path -> Text,
-        size -> BigInt,
-    }
-}
-
-table! {
+diesel::table! {
     label_auto_filters (id) {
         id -> Integer,
         name -> Text,
@@ -50,17 +37,33 @@ table! {
     }
 }
 
-joinable!(entries -> locations (location_id));
-joinable!(entry2labels -> entries (entry_id));
-joinable!(entry2labels -> labels (label_id));
-joinable!(files -> entries (entry_id));
-joinable!(label_auto_filters -> labels (label_id));
+diesel::table! {
+    labels (id) {
+        id -> Integer,
+        name -> Text,
+    }
+}
 
-allow_tables_to_appear_in_same_query!(
+diesel::table! {
+    locations (id) {
+        id -> Integer,
+        name -> Text,
+        path -> Text,
+        size -> BigInt,
+    }
+}
+
+diesel::joinable!(entries -> locations (location_id));
+diesel::joinable!(entry2labels -> entries (entry_id));
+diesel::joinable!(entry2labels -> labels (label_id));
+diesel::joinable!(files -> entries (entry_id));
+diesel::joinable!(label_auto_filters -> labels (label_id));
+
+diesel::allow_tables_to_appear_in_same_query!(
     entries,
     entry2labels,
     files,
+    label_auto_filters,
     labels,
     locations,
-    label_auto_filters
 );
