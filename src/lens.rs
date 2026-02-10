@@ -6,7 +6,8 @@ use anyhow::{bail, Result};
 use log::{debug, error, info, trace, warn};
 
 use regex::{escape, Regex, RegexBuilder};
-use time::Instant;
+use std::time::Instant;
+use time::ext::InstantExt;
 
 use std::collections::HashSet;
 use std::fs::create_dir_all;
@@ -145,10 +146,7 @@ impl Lens {
         self.ix_list.clear();
         self.source.update(data);
 
-        trace!(
-            "Data updated, {:?} ms",
-            start.elapsed().whole_milliseconds()
-        );
+        trace!("Data updated, {:?} ms", start.elapsed().as_millis());
 
         self.update_ix_list();
     }
@@ -173,7 +171,7 @@ impl Lens {
         info!(
             "ix_list update with {:?} entries took: {:?} ms",
             self.ix_list.len(),
-            start.elapsed().whole_milliseconds()
+            start.elapsed().as_millis()
         );
 
         trace!("ix_list include: {:?}  ", self.include_labels);
@@ -396,7 +394,7 @@ impl Lens {
         trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
             count,
-            start.elapsed().whole_milliseconds()
+            start.elapsed().as_millis()
         );
 
         self.update_ix_list();
@@ -413,7 +411,7 @@ impl Lens {
         trace!(
             "set_entry_labels update with {:?} entries took: {:?} ms",
             count,
-            start.elapsed().whole_milliseconds()
+            start.elapsed().as_millis()
         );
 
         self.update_ix_list();

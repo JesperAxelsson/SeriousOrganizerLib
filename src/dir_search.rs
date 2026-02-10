@@ -8,7 +8,8 @@ use std::mem;
 use std::path::PathBuf;
 use std::thread;
 
-use time::Instant;
+use std::time::Instant;
+use time::ext::InstantExt;
 
 use crate::models::*;
 use jwalk::WalkDir;
@@ -16,7 +17,7 @@ use jwalk::WalkDir;
 impl Drop for DirEntry {
     fn drop(&mut self) {
         self.files.clear();
-        mem::drop(&self.files);
+        let _ = self.files;
     }
 }
 
@@ -186,7 +187,7 @@ pub fn get_all_data(paths: &Vec<(i32, String)>) -> Vec<(i32, DirEntry)> {
             info!(
                 "Path {:?} entries took: {:?} ms",
                 &p.1,
-                start.elapsed().whole_milliseconds()
+                start.elapsed().as_millis()
             );
             vec1
         }))
@@ -201,7 +202,7 @@ pub fn get_all_data(paths: &Vec<(i32, String)>) -> Vec<(i32, DirEntry)> {
     info!(
         "Got {:?} entries took: {:?} ms, walkdir",
         vec.len(),
-        start.elapsed().whole_milliseconds()
+        start.elapsed().as_millis()
     );
 
     vec

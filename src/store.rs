@@ -22,7 +22,8 @@ use crate::schema::locations::dsl as loc;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use time::Instant;
+use std::time::Instant;
+use time::ext::InstantExt;
 //use schema::*;
 
 // TODO: Enable migrations again
@@ -182,7 +183,7 @@ impl Store {
         let mut insert_query = Vec::with_capacity(dir_hash.len());
         for (key, value) in dir_hash.iter() {
             // Insert
-            if !collisions.contains(key.clone()) {
+            if !collisions.contains(*key) {
                 //                tracec!("Insert entry: {}", key);
                 insert_query.push((
                     e::location_id.eq(value.location_id),
@@ -276,7 +277,7 @@ impl Store {
             self.entriesCache.len()
         );
 
-        info!("Update took: {:?} ms", start.elapsed().whole_milliseconds());
+        info!("Update took: {:?} ms", start.elapsed().as_millis());
     }
 
     pub fn get_all_entries(&self) -> &Vec<Entry> {
