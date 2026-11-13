@@ -33,7 +33,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 pub struct Store {
     db_url: String,
     pub entriesCache: Vec<Entry>,
-    filesCache: HashMap<i32, Vec<File>>,
+    pub filesCache: HashMap<i32, Vec<File>>,
     labelsCache: Vec<Label>,
     labelLookupCache: HashMap<i32, HashSet<i32>>,
     entryLabelLookup: HashMap<i32, HashSet<i32>>,

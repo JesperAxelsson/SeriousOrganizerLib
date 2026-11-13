@@ -7,6 +7,7 @@ use diesel::query_builder::bind_collector::RawBytesBindCollector;
 use log::{debug, error, info, trace, warn};
 
 use regex::{escape, Regex, RegexBuilder};
+use std::cell::Cell;
 use std::time::Instant;
 use time::ext::InstantExt;
 
@@ -103,19 +104,28 @@ pub enum SortOrder {
 pub struct Lens {
     pub source: Store,
     pub ix_list: Vec<usize>,
+    pub file_ix_list: Vec<usize>,
     include_labels: HashSet<i32>,
     exlude_labels: HashSet<i32>,
+
+    current_entry_ix: Option<usize>,
 
     /// Used for application using Lens
     label_states: Vec<Label>,
 
     search: Search,
+    file_search: Search,
     sort: Sort,
+    file_sort: Sort,
 }
 
 impl Lens {
     pub fn new(db_path: &str) -> Self {
         let search = Search {
+            string: String::new(),
+            regex: Regex::new(".*").unwrap(),
+        };
+        let file_search = Search {
             string: String::new(),
             regex: Regex::new(".*").unwrap(),
         };
@@ -126,8 +136,13 @@ impl Lens {
         let mut lens = Lens {
             source,
             ix_list: Vec::new(),
+            file_ix_list: Vec::new(),
             search,
+            file_search,
             sort: Sort::new(SortColumn::Name, SortOrder::Asc),
+            file_sort: Sort::new(SortColumn::Name, SortOrder::Asc),
+
+            current_entry_ix: None,
 
             include_labels: HashSet::new(),
             exlude_labels: HashSet::new(),
@@ -144,6 +159,7 @@ impl Lens {
         trace!("Starting data update");
 
         self.ix_list.clear();
+        self.file_ix_list.clear();
         self.source.update(data);
 
         trace!("Data updated, {:?} ms", start.elapsed().as_millis());
@@ -209,7 +225,8 @@ impl Lens {
     }
 
     pub fn order_by(&mut self, column: SortColumn, order: SortOrder) {
-        self.sort = Sort::new(column, order);
+        self.sort.column = column;
+        self.sort.order = order;
         self.sort();
     }
 
@@ -257,6 +274,14 @@ impl Lens {
     }
 
     // *** Entries ***
+    pub fn get_current_entry_ix(&self) -> Option<usize> {
+        self.current_entry_ix
+    }
+
+    pub fn set_current_entry_ix(&mut self, dir_ix: Option<usize>) {
+        self.current_entry_ix = dir_ix;
+        self.file_update_ix_list();
+    }
 
     pub fn get_dir_count(&self) -> usize {
         self.ix_list.len()
@@ -305,24 +330,113 @@ impl Lens {
 
     // *** Files ***
 
-    pub fn get_dir_files(&self, ix: usize) -> Option<&Vec<File>> {
-        if let Some(entry) = self.get_dir_entry(ix) {
-            return self.source.get_files(entry);
-        }
-        None
+    pub fn order_files_by(&mut self, column: SortColumn, order: SortOrder) {
+        self.file_sort.column = column;
+        self.file_sort.order = order;
+        self.sort_files();
+        // self.sort_files(dir_ix);
     }
 
-    pub fn get_file_count(&self, ix: usize) -> Option<usize> {
-        if let Some(ref files) = self.get_dir_files(ix) {
-            Some(files.len())
+    pub fn file_convert_ix(&self, file_ix: usize) -> Option<usize> {
+        if file_ix < self.file_ix_list.len() {
+            Some(self.file_ix_list[file_ix])
         } else {
             None
         }
     }
 
-    pub fn get_file_entry(&self, dir_ix: usize, file_ix: usize) -> Option<&File> {
-        if let Some(ref files) = self.get_dir_files(dir_ix) {
-            return files.get(file_ix);
+    pub fn sort_files(&mut self) {
+        let column = &self.file_sort.column;
+        let order = &self.file_sort.order;
+
+        println!("Sort by {:?} {:?}", column, order);
+
+        let Some(dir_ix) = self.current_entry_ix else {
+            return;
+        };
+        let Some(files) = self.source.filesCache.get(&(dir_ix as i32)) else {
+            return;
+        };
+
+        let selector = |ax: usize, bx: usize| {
+            let a = &files[ax];
+            let b = &files[bx];
+
+            match column {
+                SortColumn::Date => a.name.cmp(&b.name),
+                SortColumn::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+                SortColumn::Path => a.path.cmp(&b.path),
+                SortColumn::Size => a.size.cmp(&b.size),
+                _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+            }
+        };
+
+        self.file_ix_list.sort_by(move |a, b| {
+            let ordered = selector(*a, *b);
+
+            match order {
+                SortOrder::Asc => ordered,
+                SortOrder::Desc => ordered.reverse(),
+            }
+        });
+    }
+
+    pub fn file_update_ix_list(&mut self) {
+        self.file_ix_list.clear();
+
+        {
+            let Some(dir_ix) = self.current_entry_ix else {
+                self.file_ix_list.clear();
+                return;
+            };
+            let dir_ix = dir_ix as i32;
+            let search = &self.file_search;
+
+            let Some(files) = self.source.filesCache.get(&dir_ix) else {
+                self.file_ix_list.clear();
+                return;
+            };
+
+            for (i, f) in files.iter().enumerate() {
+                if search.regex.is_match(&f.name) {
+                    self.file_ix_list.push(i);
+                }
+            }
+        }
+
+        self.sort_files();
+    }
+
+    pub fn get_dir_files(&self) -> Option<Vec<File>> {
+        let Some(dir_ix) = self.get_current_entry_ix() else {
+            return None;
+        };
+
+        if let Some(entry) = self.get_dir_entry(dir_ix) {
+            if let Some(files) = self.source.get_files(entry).cloned() {
+                return Some(files);
+            }
+        }
+        None
+    }
+
+    pub fn get_file_count(&self) -> Option<usize> {
+        if self.get_current_entry_ix().is_none() {
+            return None;
+        }
+        return Some(self.file_ix_list.len());
+    }
+
+    pub fn get_file_entry(&self, file_ix: usize) -> Option<&File> {
+        let Some(dir_ix) = self.get_current_entry_ix() else {
+            return None;
+        };
+        if let Some(entry) = self.get_dir_entry(dir_ix) {
+            if let Some(ref files) = self.source.get_files(entry) {
+                if let Some(fix) = self.file_convert_ix(file_ix) {
+                    return files.get(fix);
+                }
+            }
         }
         None
     }
