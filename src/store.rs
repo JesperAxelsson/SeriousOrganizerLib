@@ -100,8 +100,10 @@ impl Store {
     }
 
     fn load_files(&mut self, connection: &mut SqliteConnection) {
-        let files: Vec<File> = f::files.load(connection).expect("Failed to load files");
+        let mut files: Vec<File> = f::files.load(connection).expect("Failed to load files");
+        files.sort_by_key(|f| f.id);
 
+        self.filesCache.clear();
         for entry in self.entriesCache.iter() {
             self.filesCache.insert(entry.id, Vec::new());
         }

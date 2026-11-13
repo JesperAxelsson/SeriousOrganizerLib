@@ -108,7 +108,7 @@ pub struct Lens {
     include_labels: HashSet<i32>,
     exlude_labels: HashSet<i32>,
 
-    current_entry_ix: Option<usize>,
+    current_entry_id: Option<i32>,
 
     /// Used for application using Lens
     label_states: Vec<Label>,
@@ -142,7 +142,7 @@ impl Lens {
             sort: Sort::new(SortColumn::Name, SortOrder::Asc),
             file_sort: Sort::new(SortColumn::Name, SortOrder::Asc),
 
-            current_entry_ix: None,
+            current_entry_id: None,
 
             include_labels: HashSet::new(),
             exlude_labels: HashSet::new(),
@@ -234,8 +234,6 @@ impl Lens {
         let column = &self.sort.column;
         let order = &self.sort.order;
 
-        println!("Sort by {:?} {:?}", column, order);
-
         let entries: &Vec<Entry> = self.source.entriesCache.as_ref();
 
         let selector = |ax: usize, bx: usize| {
@@ -274,12 +272,14 @@ impl Lens {
     }
 
     // *** Entries ***
-    pub fn get_current_entry_ix(&self) -> Option<usize> {
-        self.current_entry_ix
+    pub fn get_current_entry_id(&self) -> Option<i32> {
+        self.current_entry_id
     }
 
-    pub fn set_current_entry_ix(&mut self, dir_ix: Option<usize>) {
-        self.current_entry_ix = dir_ix;
+    pub fn set_current_entry_id(&mut self, dir_ix: Option<usize>) {
+        self.current_entry_id = dir_ix
+            .and_then(|ix| self.get_dir_entry(ix))
+            .map(|entry| entry.id);
         self.file_update_ix_list();
     }
 
@@ -334,7 +334,6 @@ impl Lens {
         self.file_sort.column = column;
         self.file_sort.order = order;
         self.sort_files();
-        // self.sort_files(dir_ix);
     }
 
     pub fn file_convert_ix(&self, file_ix: usize) -> Option<usize> {
@@ -349,12 +348,11 @@ impl Lens {
         let column = &self.file_sort.column;
         let order = &self.file_sort.order;
 
-        println!("Sort by {:?} {:?}", column, order);
-
-        let Some(dir_ix) = self.current_entry_ix else {
+        let Some(dir_id) = self.current_entry_id else {
             return;
         };
-        let Some(files) = self.source.filesCache.get(&(dir_ix as i32)) else {
+
+        let Some(files) = self.source.filesCache.get(&dir_id) else {
             return;
         };
 
@@ -384,36 +382,29 @@ impl Lens {
     pub fn file_update_ix_list(&mut self) {
         self.file_ix_list.clear();
 
-        {
-            let Some(dir_ix) = self.current_entry_ix else {
-                self.file_ix_list.clear();
-                return;
-            };
-            let dir_ix = dir_ix as i32;
-            let search = &self.file_search;
+        let Some(dir_id) = self.current_entry_id else {
+            return;
+        };
 
-            let Some(files) = self.source.filesCache.get(&dir_ix) else {
-                self.file_ix_list.clear();
-                return;
-            };
+        let search = &self.file_search;
+        let Some(files) = self.source.filesCache.get(&dir_id) else {
+            return;
+        };
 
-            for (i, f) in files.iter().enumerate() {
-                if search.regex.is_match(&f.name) {
-                    self.file_ix_list.push(i);
-                }
+        for (i, f) in files.iter().enumerate() {
+            if search.regex.is_match(&f.name) {
+                self.file_ix_list.push(i);
             }
         }
 
         self.sort_files();
     }
 
-    pub fn get_dir_files(&self) -> Option<Vec<File>> {
-        let Some(dir_ix) = self.get_current_entry_ix() else {
-            return None;
-        };
+    pub fn get_dir_files2(&self) -> Option<&Vec<File>> {
+        let dir_id = self.get_current_entry_id()?;
 
-        if let Some(entry) = self.get_dir_entry(dir_ix) {
-            if let Some(files) = self.source.get_files(entry).cloned() {
+        if let Some(entry) = self.get_dir_entry_by_id(dir_id) {
+            if let Some(files) = self.source.get_files(entry) {
                 return Some(files);
             }
         }
@@ -421,24 +412,36 @@ impl Lens {
     }
 
     pub fn get_file_count(&self) -> Option<usize> {
-        if self.get_current_entry_ix().is_none() {
-            return None;
-        }
+        self.get_current_entry_id()?;
         return Some(self.file_ix_list.len());
     }
 
     pub fn get_file_entry(&self, file_ix: usize) -> Option<&File> {
-        let Some(dir_ix) = self.get_current_entry_ix() else {
-            return None;
-        };
-        if let Some(entry) = self.get_dir_entry(dir_ix) {
-            if let Some(ref files) = self.source.get_files(entry) {
-                if let Some(fix) = self.file_convert_ix(file_ix) {
-                    return files.get(fix);
-                }
-            }
+        let dir_id = self.get_current_entry_id()?;
+        let entry = self.get_dir_entry_by_id(dir_id)?;
+        if let Some(ref files) = self.source.get_files(entry) {
+            let fix = self.file_convert_ix(file_ix)?;
+            return files.get(fix);
         }
+
         None
+    }
+
+    /// Reverse look up from entry id to ix_list
+    pub fn file_id_to_ix(&self, file_id: i32) -> Option<usize> {
+        let dir_id = self.current_entry_id?;
+
+        let file_ix = self
+            .source
+            .filesCache
+            .get(&dir_id)?
+            .binary_search_by_key(&file_id, |e| e.id);
+
+        if let Ok(file_ix) = file_ix {
+            self.file_ix_list.iter().position(|e| *e == file_ix)
+        } else {
+            None
+        }
     }
 
     // *** Labels ***
@@ -641,14 +644,14 @@ impl Lens {
 
         if meta.is_file() {
             if let Err(err) = fs::remove_file(&entry.path) {
-                println!("Failed to delete entry: '{}' error: '{}'", entry.name, err);
+                eprintln!("Failed to delete entry: '{}' error: '{}'", entry.name, err);
                 bail!(err);
             }
         }
 
         if meta.is_dir() {
             if let Err(err) = fs::remove_dir_all(&entry.path) {
-                println!("Failed to delete entry: '{}' error: '{}'", entry.name, err);
+                eprintln!("Failed to delete entry: '{}' error: '{}'", entry.name, err);
                 bail!(err);
             }
         }
@@ -663,7 +666,7 @@ impl Lens {
 
     pub fn remove_file(&mut self, file: &File) -> Result<()> {
         if let Err(err) = fs::remove_file(&file.path) {
-            println!("Failed to delete file: '{}' error: '{}'", file.name, err);
+            eprintln!("Failed to delete file: '{}' error: '{}'", file.name, err);
             bail!(err);
         }
 
