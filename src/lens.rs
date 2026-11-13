@@ -3,6 +3,7 @@ use anyhow::Context;
 // mod filter;
 // extern crate intmap;
 use anyhow::{bail, Result};
+use diesel::query_builder::bind_collector::RawBytesBindCollector;
 use log::{debug, error, info, trace, warn};
 
 use regex::{escape, Regex, RegexBuilder};
@@ -13,7 +14,6 @@ use std::collections::HashSet;
 use std::fs::create_dir_all;
 use std::fs::rename;
 use std::path::Path;
-use std::usize;
 //use std::mem;
 //use std::cmp::Ordering;
 
@@ -288,6 +288,21 @@ impl Lens {
             None
         }
     }
+
+    /// Reverse look up from entry id to ix_list
+    pub fn entry_id_to_ix(&self, entry_id: i32) -> Option<usize> {
+        let entry_ix = self
+            .source
+            .entriesCache
+            .binary_search_by_key(&entry_id, |e| e.id);
+
+        if let Ok(entry_ix) = entry_ix {
+            self.ix_list.iter().position(|e| *e == entry_ix)
+        } else {
+            None
+        }
+    }
+
     // *** Files ***
 
     pub fn get_dir_files(&self, ix: usize) -> Option<&Vec<File>> {
