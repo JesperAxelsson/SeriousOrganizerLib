@@ -427,6 +427,16 @@ impl Lens {
         None
     }
 
+    pub fn get_file_entry_by_id(&self, file_id: i32) -> Option<&File> {
+        let dir_id = self.get_current_entry_id()?;
+        let entry = self.get_dir_entry_by_id(dir_id)?;
+        if let Some(ref files) = self.source.get_files(entry) {
+            return files.iter().find(|f| f.id == file_id);
+        }
+
+        None
+    }
+
     /// Reverse look up from entry id to ix_list
     pub fn file_id_to_ix(&self, file_id: i32) -> Option<usize> {
         let dir_id = self.current_entry_id?;
